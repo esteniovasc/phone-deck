@@ -1,8 +1,8 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
-  Controls,
   Background,
+  MiniMap,
   applyNodeChanges,
   type Node,
   type NodeTypes,
@@ -13,6 +13,7 @@ import '@xyflow/react/dist/style.css';
 import { EditModal } from './components/modals/EditModal';
 import { FloatingDock } from './components/ui/FloatingDock';
 import { ModeSelector } from './components/ui/ModeSelector';
+import { NavigationControls } from './components/ui/NavigationControls';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useDecisionEngine } from './hooks/useDecisionEngine';
 import PhoneNode from './components/canvas/PhoneNode';
@@ -165,7 +166,22 @@ function App() {
         fitView
       >
         <Background />
-        <Controls />
+        
+        {/* MiniMap estilizado */}
+        <MiniMap
+          position="bottom-right"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            backgroundImage: 'none',
+          }}
+          maskColor="rgba(240, 242, 245, 0.6)"
+          nodeColor={() => {
+            // Color based on status/type - Todo node tem cor azul no minimap
+            return 'rgba(59, 130, 246, 0.6)'; // Blue tint
+          }}
+          pannable
+          zoomable
+        />
       </ReactFlow>
 
       {/* Header Flutuante (Fixed + z-index alto) */}
@@ -176,6 +192,9 @@ function App() {
           setNodes(createNodesFromPhones(phones));
         }}
       />
+
+      {/* Navigation Controls (Zoom + Fit View) */}
+      <NavigationControls />
 
       {/* Action Dock Flutuante (Inferior) */}
       <FloatingDock
