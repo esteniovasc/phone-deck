@@ -18,6 +18,9 @@ import { NavigationControls } from './components/ui/NavigationControls';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useDecisionEngine } from './hooks/useDecisionEngine';
 import PhoneNode from './components/canvas/PhoneNode';
+import { Eye, EyeOff, Activity } from 'lucide-react';
+import { Toast } from './components/ui/Toast';
+import { useHotkeys } from './hooks/useHotkeys';
 import { findSmartPosition } from './utils/positionFinder';
 import { importProject, exportProject } from './utils/projectManager';
 import type { Phone, AnalysisMode } from './types';
@@ -44,6 +47,8 @@ function AutoFitViewOnDraft({ phones }: { phones: Phone[] }) {
 	return null;
 }
 
+type MinimapBehavior = 'auto' | 'visible' | 'hidden';
+
 function App() {
 	const [phones, setPhones] = useLocalStorage<Phone[]>('phonedeck-data', []);
 	const [editingId, setEditingId] = useState<string | null>(null);
@@ -55,6 +60,12 @@ function App() {
 	const [pendingImport, setPendingImport] = useState<{ phones: Phone[]; fileName: string } | null>(null);
 	const [showConfirmImport, setShowConfirmImport] = useState(false);
 	const [showMiniMap, setShowMiniMap] = useState(false);
+	const [minimapBehavior, setMinimapBehavior] = useState<MinimapBehavior>('auto');
+	const [toastState, setToastState] = useState<{ show: boolean; message: string; icon: React.ReactNode }>({
+		show: false,
+		message: '',
+		icon: null,
+	});
 	const miniMapTimeoutRef = useRef<number | null>(null);
 
 	// Calcular se há mudanças não salvas
@@ -282,9 +293,46 @@ function App() {
 		}
 
 		miniMapTimeoutRef.current = setTimeout(() => {
-			setShowMiniMap(false);
+			if (minimapBehavior === 'auto') {
+				setShowMiniMap(false);
+			}
 		}, 2000);
-	}, []);
+	}, [minimapBehavior]);
+
+	/**
+	 * Atalhos de Teclado Global
+	 */
+	useHotkeys((key) => {
+		if (key.toLowerCase() === 'v') {
+			setMinimapBehavior((prev) => {
+				let next: MinimapBehavior;
+				let message: string;
+				let icon: React.ReactNode;
+
+				if (prev === 'auto') {
+					next = 'visible';
+					message = 'Minimapa Sempre Visível';
+					icon = <Eye size={18} className="text-blue-400" />;
+				} else if (prev === 'visible') {
+					next = 'hidden';
+					message = 'Minimapa Oculto';
+					icon = <EyeOff size={18} className="text-slate-400" />;
+				} else {
+					next = 'auto';
+					message = 'Minimapa Automático';
+					icon = <Activity size={18} className="text-green-400" />;
+				}
+
+				setToastState({ show: true, message, icon });
+
+				// Atualizar visibilidade imediata
+				if (next === 'visible') setShowMiniMap(true);
+				if (next === 'hidden') setShowMiniMap(false);
+
+				return next;
+			});
+		}
+	});
 
 	/**
 	 * Sincronizar nodes quando phones ou analysisMode mudam
@@ -372,9 +420,15 @@ function App() {
 					style={{
 						backgroundColor: 'rgba(255, 255, 255, 0.5)',
 						backgroundImage: 'none',
-						opacity: showMiniMap ? 1 : 0,
+						opacity:
+							minimapBehavior === 'visible' ? 1 :
+								minimapBehavior === 'hidden' ? 0 :
+									showMiniMap ? 1 : 0,
 						transition: 'opacity 0.5s ease-in-out',
-						pointerEvents: showMiniMap ? 'all' : 'none',
+						pointerEvents:
+							minimapBehavior === 'hidden' ? 'none' :
+								minimapBehavior === 'visible' ? 'all' :
+									showMiniMap ? 'all' : 'none',
 					}}
 					maskColor="rgba(240, 242, 245, 0.6)"
 					nodeColor={() => {
@@ -470,6 +524,14 @@ function App() {
 					</div>
 				</div>
 			)}
+
+			{/* Toast de Feedback */}
+			<Toast
+				message={toastState.message}
+				icon={toastState.icon}
+				isVisible={toastState.show}
+				onClose={() => setToastState((prev) => ({ ...prev, show: false }))}
+			/>
 		</div>
 	);
 }
