@@ -483,7 +483,7 @@ function App() {
 
 			{/* Notification de Import */}
 			{importMessage && (
-				<div className={`fixed bottom-6 right-6 px-6 py-3 rounded-lg shadow-lg text-white font-medium z-50 animate-pulse ${importMessage.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+				<div className={`fixed top-6 right-6 px-6 py-3 rounded-lg shadow-lg text-white font-medium z-50 animate-pulse ${importMessage.type === 'success' ? 'bg-green-500' : 'bg-red-500'
 					}`}>
 					{importMessage.text}
 				</div>
