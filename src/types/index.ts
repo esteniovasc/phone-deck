@@ -1,3 +1,7 @@
+export type AnalysisMode = 'default' | 'backup_city' | 'collection' | 'kids_safe';
+
+export type VisualStatus = 'highlight' | 'neutral' | 'dimmed';
+
 export interface Phone {
   id: string;
   model: string;

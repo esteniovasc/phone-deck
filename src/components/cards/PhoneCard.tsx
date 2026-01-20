@@ -1,8 +1,9 @@
 import { ChevronUp, ChevronDown, Zap, Shield, Wifi, Trash2, Edit } from 'lucide-react';
-import type { Phone } from '../../types';
+import type { Phone, VisualStatus } from '../../types';
 
 interface PhoneCardProps {
   data: Phone;
+  visualStatus: VisualStatus;
   onToggleMinimize: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -39,12 +40,24 @@ const getNetworkColor = (network: string) => {
   return network === '5G' ? 'text-blue-600 bg-blue-50' : 'text-slate-600 bg-slate-50';
 };
 
-export function PhoneCard({ data, onToggleMinimize, onEdit, onDelete }: PhoneCardProps) {
+const getVisualStatusClasses = (status: VisualStatus): string => {
+  switch (status) {
+    case 'highlight':
+      return 'ring-2 ring-blue-500 shadow-lg';
+    case 'dimmed':
+      return 'opacity-40 scale-95 grayscale';
+    case 'neutral':
+    default:
+      return '';
+  }
+};
+
+export function PhoneCard({ data, visualStatus, onToggleMinimize, onEdit, onDelete }: PhoneCardProps) {
   return (
     <div
-      className={`group relative bg-white border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden ${
+      className={`group relative bg-white border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-all overflow-hidden ${
         data.isMinimized ? 'max-w-xs' : 'max-w-2xl'
-      }`}
+      } ${getVisualStatusClasses(visualStatus)}`}
     >
       {/* Botão Toggle */}
       <button

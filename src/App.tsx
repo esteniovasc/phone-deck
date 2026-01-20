@@ -3,11 +3,13 @@ import { Plus, Settings, Download } from 'lucide-react';
 import { PhoneCard } from './components/cards/PhoneCard';
 import { EditModal } from './components/modals/EditModal';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import type { Phone } from './types';
+import { useDecisionEngine } from './hooks/useDecisionEngine';
+import type { Phone, AnalysisMode } from './types';
 
 function App() {
   const [phones, setPhones] = useLocalStorage<Phone[]>('phonedeck-data', []);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('default');
 
   const handleAddPhone = () => {
     const newPhone: Phone = {
@@ -60,7 +62,24 @@ function App() {
       {/* Header Fixo */}
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-900">PhoneDeck</h1>
+          <div className="flex items-center gap-6">
+            <h1 className="text-2xl font-bold text-slate-900">PhoneDeck</h1>
+            
+            {/* Selector de Modo de Análise */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-600">Modo de Análise:</label>
+              <select
+                value={analysisMode}
+                onChange={(e) => setAnalysisMode(e.target.value as AnalysisMode)}
+                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
+              >
+                <option value="default">Padrão</option>
+                <option value="backup_city">Backup/Cidade 🏙️</option>
+                <option value="collection">Coleção 🎮</option>
+                <option value="kids_safe">Segurança Infantil 👶</option>
+              </select>
+            </div>
+          </div>
 
           <div className="flex items-center gap-3">
             <button
@@ -107,15 +126,19 @@ function App() {
           </div>
         ) : (
           <div className="flex flex-wrap gap-6">
-            {phones.map((phone) => (
-              <PhoneCard
-                key={phone.id}
-                data={phone}
-                onToggleMinimize={handleToggleMinimize}
-                onEdit={handleEditPhone}
-                onDelete={handleDeletePhone}
-              />
-            ))}
+            {phones.map((phone) => {
+              const visualStatus = useDecisionEngine(phone, analysisMode);
+              return (
+                <PhoneCard
+                  key={phone.id}
+                  data={phone}
+                  visualStatus={visualStatus}
+                  onToggleMinimize={handleToggleMinimize}
+                  onEdit={handleEditPhone}
+                  onDelete={handleDeletePhone}
+                />
+              );
+            })}
           </div>
         )}
       </main>
