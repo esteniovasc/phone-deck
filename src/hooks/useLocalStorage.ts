@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {
+export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((prev: T) => T)) => void] {
   // Estado para armazenar o valor
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
@@ -13,11 +13,12 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
   });
 
   // Função para atualizar o valor
-  const setValue = (value: T) => {
+  const setValue = (value: T | ((prev: T) => T)) => {
     try {
-      setStoredValue(value);
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(value));
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
     } catch (error) {
       console.error(`Error writing to localStorage (${key}):`, error);
@@ -26,3 +27,4 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
 
   return [storedValue, setValue];
 }
+

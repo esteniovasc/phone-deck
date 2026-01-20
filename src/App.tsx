@@ -34,11 +34,11 @@ function App() {
   );
 
   /**
-   * Converter phones em nodes para React Flow
-   * Se o phone não tiver posição, distribui em grid
+   * Sincronizar nodes quando phones ou analysisMode mudam
+   * Isso mantém os nodes sempre em sync com o estado de phones
    */
-  const createNodesFromPhones = useCallback((phones: Phone[]) => {
-    return phones.map((phone, index) => ({
+  useEffect(() => {
+    const newNodes = phones.map((phone, index) => ({
       id: phone.id,
       data: {
         phone,
@@ -52,19 +52,8 @@ function App() {
       },
       type: 'phoneNode',
     } as Node));
-  }, [analysisMode]);
-
-  /**
-   * Sincronizar nodes quando phones ou analysisMode mudam
-   */
-  const updateNodesFromPhones = useCallback(() => {
-    setNodes(createNodesFromPhones(phones));
-  }, [phones, createNodesFromPhones]);
-
-  // Inicializar nodes quando phones carregam
-  useEffect(() => {
-    updateNodesFromPhones();
-  }, [updateNodesFromPhones]);
+    setNodes(newNodes);
+  }, [phones, analysisMode]);
 
   const handleNodesChange: OnNodesChange = useCallback(
     (changes) => {
@@ -103,7 +92,7 @@ function App() {
     [phones, setPhones]
   );
 
-  const handleAddPhone = () => {
+  const handleAddPhone = useCallback(() => {
     const newPhone: Phone = {
       id: crypto.randomUUID(),
       model: 'Novo Celular',
@@ -119,29 +108,26 @@ function App() {
       price: { installment: 'A definir', total: 'A definir' },
       isMinimized: false,
     };
-    const newPhones = [...phones, newPhone];
-    setPhones(newPhones);
-    setNodes(createNodesFromPhones(newPhones));
-  };
+    const newPhonesList = [...phones, newPhone];
+    setPhones(newPhonesList);
+  }, [phones]);
 
-  const handleEditPhone = (phone: Phone) => {
+  const handleEditPhone = useCallback((phone: Phone) => {
     setEditingId(phone.id);
-  };
+  }, []);
 
-  const handleSaveEdit = (updatedPhone: Phone) => {
-    const newPhones = phones.map((phone) =>
+  const handleSaveEdit = useCallback((updatedPhone: Phone) => {
+    const updatedPhonesList = phones.map((phone) =>
       phone.id === updatedPhone.id ? updatedPhone : phone
     );
-    setPhones(newPhones);
-    setNodes(createNodesFromPhones(newPhones));
+    setPhones(updatedPhonesList);
     setEditingId(null);
-  };
+  }, [phones]);
 
-  const handleDeletePhone = (id: string) => {
-    const newPhones = phones.filter((phone) => phone.id !== id);
-    setPhones(newPhones);
-    setNodes(createNodesFromPhones(newPhones));
-  };
+  const handleDeletePhone = useCallback((id: string) => {
+    const filteredPhones = phones.filter((phone) => phone.id !== id);
+    setPhones(filteredPhones);
+  }, [phones]);
 
   const handleBackupJSON = () => {
     const dataStr = JSON.stringify(phones, null, 2);
@@ -187,10 +173,7 @@ function App() {
       {/* Header Flutuante (Fixed + z-index alto) */}
       <ModeSelector 
         currentMode={analysisMode} 
-        onModeChange={(newMode) => {
-          setAnalysisMode(newMode);
-          setNodes(createNodesFromPhones(phones));
-        }}
+        onModeChange={setAnalysisMode}
       />
 
       {/* Navigation Controls (Zoom + Fit View) */}
