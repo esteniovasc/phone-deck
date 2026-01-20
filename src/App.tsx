@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Plus, Settings, Download } from 'lucide-react';
 import {
   ReactFlow,
   Controls,
@@ -12,6 +11,8 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { EditModal } from './components/modals/EditModal';
+import { FloatingDock } from './components/ui/FloatingDock';
+import { ModeSelector } from './components/ui/ModeSelector';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useDecisionEngine } from './hooks/useDecisionEngine';
 import PhoneNode from './components/canvas/PhoneNode';
@@ -168,59 +169,19 @@ function App() {
       </ReactFlow>
 
       {/* Header Flutuante (Fixed + z-index alto) */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-sm">
-        <div className="px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-2xl font-bold text-slate-900">PhoneDeck</h1>
+      <ModeSelector 
+        currentMode={analysisMode} 
+        onModeChange={(newMode) => {
+          setAnalysisMode(newMode);
+          setNodes(createNodesFromPhones(phones));
+        }}
+      />
 
-            {/* Selector de Modo de Análise */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-slate-600">Modo de Análise:</label>
-              <select
-                value={analysisMode}
-                onChange={(e) => {
-                  const newMode = e.target.value as AnalysisMode;
-                  setAnalysisMode(newMode);
-                  setNodes(createNodesFromPhones(phones));
-                }}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
-              >
-                <option value="default">Padrão</option>
-                <option value="backup_city">Backup/Cidade 🏙️</option>
-                <option value="collection">Coleção 🎮</option>
-                <option value="kids_safe">Segurança Infantil 👶</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleBackupJSON}
-              className="flex items-center gap-2 px-4 py-2 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition font-medium"
-              title="Fazer backup dos dados"
-            >
-              <Download className="w-4 h-4" />
-              Backup
-            </button>
-
-            <button
-              onClick={handleAddPhone}
-              className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition font-medium"
-              title="Adicionar novo telefone"
-            >
-              <Plus className="w-4 h-4" />
-              Novo
-            </button>
-
-            <button
-              className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
-              title="Configurações"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* Action Dock Flutuante (Inferior) */}
+      <FloatingDock
+        onAddPhone={handleAddPhone}
+        onBackup={handleBackupJSON}
+      />
 
       {/* Modal de Edição */}
       {editingId && (
