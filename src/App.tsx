@@ -8,6 +8,7 @@ import {
   type NodeTypes,
   type OnNodesChange,
   type OnEdgesChange,
+  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { EditModal } from './components/modals/EditModal';
@@ -17,7 +18,30 @@ import { NavigationControls } from './components/ui/NavigationControls';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useDecisionEngine } from './hooks/useDecisionEngine';
 import PhoneNode from './components/canvas/PhoneNode';
+import { findSmartPosition } from './utils/positionFinder';
 import type { Phone, AnalysisMode } from './types';
+
+/**
+ * Componente auxiliar que centraliza a visualização quando um novo card é criado
+ */
+function AutoFitViewOnDraft({ phones }: { phones: Phone[] }) {
+  const { fitView } = useReactFlow();
+
+  useEffect(() => {
+    const draftPhone = phones.find((p) => p.isDraft);
+    if (draftPhone) {
+      setTimeout(() => {
+        fitView({
+          nodes: [{ id: draftPhone.id }],
+          padding: 1.0, //Variavel para ajustar nível de zoom ao criar novo card
+          duration: 600,
+        });
+      }, 100);
+    }
+  }, [phones, fitView]);
+
+  return null;
+}
 
 function App() {
   const [phones, setPhones] = useLocalStorage<Phone[]>('phonedeck-data', []);
@@ -32,28 +56,6 @@ function App() {
     }),
     []
   );
-
-  /**
-   * Sincronizar nodes quando phones ou analysisMode mudam
-   * Isso mantém os nodes sempre em sync com o estado de phones
-   */
-  useEffect(() => {
-    const newNodes = phones.map((phone, index) => ({
-      id: phone.id,
-      data: {
-        phone,
-        visualStatus: useDecisionEngine(phone, analysisMode),
-        onEdit: handleEditPhone,
-        onDelete: handleDeletePhone,
-      },
-      position: phone.position || {
-        x: (index % 3) * 420,
-        y: Math.floor(index / 3) * 520,
-      },
-      type: 'phoneNode',
-    } as Node));
-    setNodes(newNodes);
-  }, [phones, analysisMode]);
 
   const handleNodesChange: OnNodesChange = useCallback(
     (changes) => {
@@ -93,15 +95,14 @@ function App() {
   );
 
   const handleAddPhone = useCallback(() => {
+    const smartPosition = findSmartPosition(nodes);
     const newPhone: Phone = {
       id: crypto.randomUUID(),
-      model: 'Novo Celular',
+      model: '',
       year: new Date().getFullYear(),
       image: 'https://images.unsplash.com/photo-1511707267537-b85faf00021e?w=400&h=600&fit=crop',
-      position: {
-        x: Math.random() * 400,
-        y: Math.random() * 300,
-      },
+      position: smartPosition,
+      isDraft: true,
       specs: { battery: '---', weight: '---', thickness: '---' },
       badges: { network: '4G', resilience: 'medium', batteryStatus: 'neutral' },
       highlight: 'Adicione informações do aparelho',
@@ -110,7 +111,7 @@ function App() {
     };
     const newPhonesList = [...phones, newPhone];
     setPhones(newPhonesList);
-  }, [phones]);
+  }, [phones, nodes]);
 
   const handleEditPhone = useCallback((phone: Phone) => {
     setEditingId(phone.id);
@@ -124,9 +125,54 @@ function App() {
     setEditingId(null);
   }, [phones]);
 
+  const handleSaveDraft = useCallback((id: string, modelName: string) => {
+    const updatedPhonesList = phones.map((phone) =>
+      phone.id === id
+        ? { ...phone, model: modelName, isDraft: false }
+        : phone
+    );
+    setPhones(updatedPhonesList);
+  }, [phones]);
+
   const handleDeletePhone = useCallback((id: string) => {
     const filteredPhones = phones.filter((phone) => phone.id !== id);
     setPhones(filteredPhones);
+  }, [phones]);
+
+  /**
+   * Sincronizar nodes quando phones ou analysisMode mudam
+   * Isso mantém os nodes sempre em sync com o estado de phones
+   */
+  useEffect(() => {
+    const newNodes = phones.map((phone, index) => ({
+      id: phone.id,
+      data: {
+        phone,
+        visualStatus: useDecisionEngine(phone, analysisMode),
+        onEdit: handleEditPhone,
+        onDelete: handleDeletePhone,
+        onSaveDraft: handleSaveDraft,
+      },
+      position: phone.position || {
+        x: (index % 3) * 420,
+        y: Math.floor(index / 3) * 520,
+      },
+      type: 'phoneNode',
+    } as Node));
+    setNodes(newNodes);
+  }, [phones, analysisMode, handleEditPhone, handleDeletePhone, handleSaveDraft]);
+
+  // Fazer focus no input do draft quando há novo card
+  useEffect(() => {
+    const draftPhone = phones.find((p) => p.isDraft);
+    if (draftPhone) {
+      setTimeout(() => {
+        const input = document.getElementById(`draft-input-${draftPhone.id}`);
+        if (input) {
+          input.focus();
+        }
+      }, 500);
+    }
   }, [phones]);
 
   const handleBackupJSON = () => {
@@ -152,6 +198,7 @@ function App() {
         fitView
       >
         <Background />
+        <AutoFitViewOnDraft phones={phones} />
         
         {/* MiniMap estilizado */}
         <MiniMap
@@ -213,3 +260,4 @@ function App() {
 }
 
 export default App;
+

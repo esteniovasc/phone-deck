@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { X, Download } from 'lucide-react';
+import { X, Download, Image as ImageIcon } from 'lucide-react';
 import type { Phone } from '../../types';
 import { parseGsmArenaHtml, parseGsmArenaHtmlFallback } from '../../utils/gsmParser';
+import { ImageUploadModal } from './ImageUploadModal';
 
 interface EditModalProps {
   phone: Phone;
@@ -13,6 +14,7 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
   const [formData, setFormData] = useState<Phone>(phone);
   const [htmlInput, setHtmlInput] = useState('');
   const [parseMessage, setParseMessage] = useState('');
+  const [showImageUploadModal, setShowImageUploadModal] = useState(false);
 
   const handleChange = (field: keyof Omit<Phone, 'badges'>, value: string | number | boolean) => {
     setFormData((prev) => ({
@@ -29,6 +31,14 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
         [field]: value,
       },
     }));
+  };
+
+  const handleImageUploadSave = (imageData: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      image: imageData,
+    }));
+    setShowImageUploadModal(false);
   };
 
   const handlePriceChange = (field: keyof Phone['price'], value: string) => {
@@ -224,35 +234,54 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
           </div>
 
           {/* URL da Imagem com Preview */}
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                URL da Imagem
-              </label>
-              <input
-                type="url"
-                value={formData.image}
-                onChange={(e) => handleChange('image', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                placeholder="https://..."
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-3">
+              Imagem do Celular
+            </label>
+            <div className="flex gap-4">
+              {/* Preview */}
+              <div className="flex-shrink-0">
+                {formData.image && (
+                  <img
+                    src={formData.image}
+                    alt="Preview"
+                    className="w-32 h-48 object-cover rounded-lg bg-slate-100 shadow-sm"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://via.placeholder.com/150?text=Erro';
+                    }}
+                  />
+                )}
+                {!formData.image && (
+                  <div className="w-32 h-48 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-dashed border-slate-300">
+                    <span className="text-xs text-slate-500 text-center px-2">Sem imagem</span>
+                  </div>
+                )}
+              </div>
 
-            {/* Preview */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Preview
-              </label>
-              {formData.image && (
-                <img
-                  src={formData.image}
-                  alt="Preview"
-                  className="w-full h-32 object-cover rounded-lg bg-slate-100"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://via.placeholder.com/150?text=Erro';
-                  }}
-                />
-              )}
+              {/* Controls */}
+              <div className="flex-1 space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    URL Direta
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.image}
+                    onChange={(e) => handleChange('image', e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                    placeholder="https://..."
+                  />
+                </div>
+
+                {/* Botão Alterar Imagem */}
+                <button
+                  onClick={() => setShowImageUploadModal(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition font-medium text-sm"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  Alterar Imagem
+                </button>
+              </div>
             </div>
           </div>
 
@@ -515,6 +544,15 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
           </button>
         </div>
       </div>
+
+      {/* ImageUploadModal */}
+      {showImageUploadModal && (
+        <ImageUploadModal
+          currentImage={formData.image}
+          onSave={handleImageUploadSave}
+          onCancel={() => setShowImageUploadModal(false)}
+        />
+      )}
     </div>
   );
 }

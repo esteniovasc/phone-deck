@@ -18,10 +18,11 @@ interface PhoneNodeData {
   visualStatus: VisualStatus;
   onEdit: (phone: Phone) => void;
   onDelete: (id: string) => void;
+  onSaveDraft?: (id: string, modelName: string) => void;
 }
 
 export default function PhoneNode(props: NodeProps & { data: PhoneNodeData }) {
-  const { phone, visualStatus, onEdit, onDelete } = props.data;
+  const { phone, visualStatus, onEdit, onDelete, onSaveDraft } = props.data;
 
   return (
     <div className="relative">
@@ -35,6 +36,7 @@ export default function PhoneNode(props: NodeProps & { data: PhoneNodeData }) {
         onEdit={() => onEdit(phone)}
         onDelete={() => onDelete(phone.id)}
         onToggleMinimize={() => {}}
+        onSaveDraft={onSaveDraft}
         visualStatus={visualStatus}
       />
     </div>

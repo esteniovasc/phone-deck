@@ -1,4 +1,5 @@
 import { ChevronUp, ChevronDown, Zap, Shield, Wifi, Trash2, Edit } from 'lucide-react';
+import { useState } from 'react';
 import type { Phone, VisualStatus } from '../../types';
 
 interface PhoneCardProps {
@@ -7,6 +8,7 @@ interface PhoneCardProps {
   onToggleMinimize: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onSaveDraft?: (id: string, modelName: string) => void;
 }
 
 const getBatteryColor = (status: string) => {
@@ -52,7 +54,23 @@ const getVisualStatusClasses = (status: VisualStatus): string => {
   }
 };
 
-export function PhoneCard({ data, visualStatus, onToggleMinimize, onEdit, onDelete }: PhoneCardProps) {
+export function PhoneCard({ data, visualStatus, onToggleMinimize, onEdit, onDelete, onSaveDraft }: PhoneCardProps) {
+  const [draftName, setDraftName] = useState(data.model);
+  const handleDraftNameSave = () => {
+    if (draftName.trim() && onSaveDraft) {
+      onSaveDraft(data.id, draftName.trim());
+    } else if (!draftName.trim() && onDelete) {
+      // Se não digitou nada, deletar o card
+      onDelete(data.id);
+    }
+  };
+
+  const handleDraftKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleDraftNameSave();
+    }
+  };
+
   return (
     <div
       className={`group relative bg-white border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-all overflow-hidden ${
@@ -130,7 +148,21 @@ export function PhoneCard({ data, visualStatus, onToggleMinimize, onEdit, onDele
           <div className="w-2/3 p-6 flex flex-col justify-between">
             {/* Header: Modelo + Ano */}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-slate-900">{data.model}</h2>
+              {data.isDraft ? (
+                <input
+                  id={`draft-input-${data.id}`}
+                  autoFocus
+                  type="text"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onBlur={handleDraftNameSave}
+                  onKeyDown={handleDraftKeyDown}
+                  placeholder="Digite o modelo do celular..."
+                  className="flex-1 text-lg font-bold text-slate-900 border-b-2 border-blue-500 focus:outline-none bg-transparent px-1"
+                />
+              ) : (
+                <h2 className="text-lg font-bold text-slate-900">{data.model}</h2>
+              )}
               <span className="px-3 py-1 text-xs font-medium bg-slate-100 text-slate-700 rounded-full">
                 {data.year}
               </span>
@@ -145,19 +177,19 @@ export function PhoneCard({ data, visualStatus, onToggleMinimize, onEdit, onDele
                 )}`}
               >
                 <Wifi className="w-4 h-4" />
-                <span className="text-sm font-medium">{data.badges.network}</span>
+                <span className="text-sm font-medium">{data.isDraft ? '—' : data.badges.network}</span>
               </div>
 
               {/* Resilience */}
               <div className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-slate-50 text-slate-700">
-                {getResilienceIcon(data.badges.resilience)}
-                <span className="text-sm font-medium capitalize">{data.badges.resilience}</span>
+                {getResilienceIcon(data.isDraft ? 'medium' : data.badges.resilience)}
+                <span className="text-sm font-medium capitalize">{data.isDraft ? '—' : data.badges.resilience}</span>
               </div>
 
               {/* Battery */}
               <div className={`flex items-center gap-1.5 px-3 py-2 rounded-md ${getBatteryColor(data.badges.batteryStatus)}`}>
                 <Zap className="w-4 h-4" />
-                <span className="text-sm font-medium capitalize">{data.specs.battery}</span>
+                <span className="text-sm font-medium capitalize">{data.isDraft ? '—' : data.specs.battery}</span>
               </div>
             </div>
 

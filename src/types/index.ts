@@ -7,6 +7,7 @@ export interface Phone {
   model: string;
   year: number;
   image: string;
+  isDraft?: boolean; // Novo card em edição rápida (título como input)
   // Canvas Position (React Flow) - Auto-initialized if missing
   position?: {
     x: number;
