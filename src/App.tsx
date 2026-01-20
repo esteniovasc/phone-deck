@@ -1,15 +1,105 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Plus, Settings, Download } from 'lucide-react';
-import { PhoneCard } from './components/cards/PhoneCard';
+import {
+  ReactFlow,
+  Controls,
+  Background,
+  applyNodeChanges,
+  type Node,
+  type NodeTypes,
+  type OnNodesChange,
+  type OnEdgesChange,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import { EditModal } from './components/modals/EditModal';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useDecisionEngine } from './hooks/useDecisionEngine';
+import PhoneNode from './components/canvas/PhoneNode';
 import type { Phone, AnalysisMode } from './types';
 
 function App() {
   const [phones, setPhones] = useLocalStorage<Phone[]>('phonedeck-data', []);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('default');
+  const [nodes, setNodes] = useState<Node[]>([]);
+
+  // Node Types para React Flow
+  const nodeTypes = useMemo<NodeTypes>(
+    () => ({
+      phoneNode: PhoneNode,
+    }),
+    []
+  );
+
+  /**
+   * Converter phones em nodes para React Flow
+   * Se o phone não tiver posição, distribui em grid
+   */
+  const createNodesFromPhones = useCallback((phones: Phone[]) => {
+    return phones.map((phone, index) => ({
+      id: phone.id,
+      data: {
+        phone,
+        visualStatus: useDecisionEngine(phone, analysisMode),
+        onEdit: handleEditPhone,
+        onDelete: handleDeletePhone,
+      },
+      position: phone.position || {
+        x: (index % 3) * 420,
+        y: Math.floor(index / 3) * 520,
+      },
+      type: 'phoneNode',
+    } as Node));
+  }, [analysisMode]);
+
+  /**
+   * Sincronizar nodes quando phones ou analysisMode mudam
+   */
+  const updateNodesFromPhones = useCallback(() => {
+    setNodes(createNodesFromPhones(phones));
+  }, [phones, createNodesFromPhones]);
+
+  // Inicializar nodes quando phones carregam
+  useEffect(() => {
+    updateNodesFromPhones();
+  }, [updateNodesFromPhones]);
+
+  const handleNodesChange: OnNodesChange = useCallback(
+    (changes) => {
+      setNodes((nds) => applyNodeChanges(changes, nds));
+    },
+    []
+  );
+
+  const handleEdgesChange: OnEdgesChange = useCallback(
+    () => {
+      // Para edges, não precisamos fazer muita coisa
+      // Apenas mantemos o estado vazio por enquanto
+    },
+    []
+  );
+
+  /**
+   * Salvar posição do node quando o drag termina
+   */
+  const handleNodeDragStop = useCallback(
+    (_: any, node: Node) => {
+      setPhones(
+        phones.map((phone) =>
+          phone.id === node.id
+            ? {
+                ...phone,
+                position: {
+                  x: Math.round(node.position.x),
+                  y: Math.round(node.position.y),
+                },
+              }
+            : phone
+        )
+      );
+    },
+    [phones, setPhones]
+  );
 
   const handleAddPhone = () => {
     const newPhone: Phone = {
@@ -17,34 +107,38 @@ function App() {
       model: 'Novo Celular',
       year: new Date().getFullYear(),
       image: 'https://images.unsplash.com/photo-1511707267537-b85faf00021e?w=400&h=600&fit=crop',
+      position: {
+        x: Math.random() * 400,
+        y: Math.random() * 300,
+      },
       specs: { battery: '---', weight: '---', thickness: '---' },
       badges: { network: '4G', resilience: 'medium', batteryStatus: 'neutral' },
       highlight: 'Adicione informações do aparelho',
       price: { installment: 'A definir', total: 'A definir' },
       isMinimized: false,
     };
-    setPhones([...phones, newPhone]);
+    const newPhones = [...phones, newPhone];
+    setPhones(newPhones);
+    setNodes(createNodesFromPhones(newPhones));
   };
 
-  const handleEditPhone = (id: string) => {
-    setEditingId(id);
+  const handleEditPhone = (phone: Phone) => {
+    setEditingId(phone.id);
   };
 
   const handleSaveEdit = (updatedPhone: Phone) => {
-    setPhones(phones.map((phone) => (phone.id === updatedPhone.id ? updatedPhone : phone)));
+    const newPhones = phones.map((phone) =>
+      phone.id === updatedPhone.id ? updatedPhone : phone
+    );
+    setPhones(newPhones);
+    setNodes(createNodesFromPhones(newPhones));
     setEditingId(null);
   };
 
   const handleDeletePhone = (id: string) => {
-    setPhones(phones.filter((phone) => phone.id !== id));
-  };
-
-  const handleToggleMinimize = (id: string) => {
-    setPhones(
-      phones.map((phone) =>
-        phone.id === id ? { ...phone, isMinimized: !phone.isMinimized } : phone
-      )
-    );
+    const newPhones = phones.filter((phone) => phone.id !== id);
+    setPhones(newPhones);
+    setNodes(createNodesFromPhones(newPhones));
   };
 
   const handleBackupJSON = () => {
@@ -58,19 +152,37 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header Fixo */}
-      <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between">
+    <div className="w-screen h-screen bg-slate-50 relative">
+      {/* React Flow Canvas */}
+      <ReactFlow
+        nodes={nodes}
+        edges={[]}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={handleEdgesChange}
+        onNodeDragStop={handleNodeDragStop}
+        nodeTypes={nodeTypes}
+        fitView
+      >
+        <Background />
+        <Controls />
+      </ReactFlow>
+
+      {/* Header Flutuante (Fixed + z-index alto) */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+        <div className="px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <h1 className="text-2xl font-bold text-slate-900">PhoneDeck</h1>
-            
+
             {/* Selector de Modo de Análise */}
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium text-slate-600">Modo de Análise:</label>
               <select
                 value={analysisMode}
-                onChange={(e) => setAnalysisMode(e.target.value as AnalysisMode)}
+                onChange={(e) => {
+                  const newMode = e.target.value as AnalysisMode;
+                  setAnalysisMode(newMode);
+                  setNodes(createNodesFromPhones(phones));
+                }}
                 className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
               >
                 <option value="default">Padrão</option>
@@ -110,39 +222,6 @@ function App() {
         </div>
       </header>
 
-      {/* Área de Conteúdo */}
-      <main className="max-w-7xl mx-auto px-8 py-8">
-        {phones.length === 0 ? (
-          <div className="flex items-center justify-center min-h-96">
-            <div className="text-center">
-              <p className="text-slate-500 text-lg">Nenhum telefone adicionado ainda.</p>
-              <button
-                onClick={handleAddPhone}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-              >
-                Adicionar Primeiro Telefone
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-6">
-            {phones.map((phone) => {
-              const visualStatus = useDecisionEngine(phone, analysisMode);
-              return (
-                <PhoneCard
-                  key={phone.id}
-                  data={phone}
-                  visualStatus={visualStatus}
-                  onToggleMinimize={handleToggleMinimize}
-                  onEdit={handleEditPhone}
-                  onDelete={handleDeletePhone}
-                />
-              );
-            })}
-          </div>
-        )}
-      </main>
-
       {/* Modal de Edição */}
       {editingId && (
         <EditModal
@@ -151,8 +230,23 @@ function App() {
           onCancel={() => setEditingId(null)}
         />
       )}
+
+      {/* Mensagem vazia (overlay) */}
+      {phones.length === 0 && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/10">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <p className="text-slate-500 text-lg mb-4">Nenhum telefone adicionado ainda.</p>
+            <button
+              onClick={handleAddPhone}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+            >
+              Adicionar Primeiro Telefone
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export default App
+export default App;

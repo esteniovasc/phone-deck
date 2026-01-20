@@ -7,6 +7,11 @@ export interface Phone {
   model: string;
   year: number;
   image: string;
+  // Canvas Position (React Flow) - Auto-initialized if missing
+  position?: {
+    x: number;
+    y: number;
+  };
   specs: {
     screen?: string;      // ex: "6.8 inch P-OLED"
     chipset?: string;     // ex: "Snapdragon 765G"
