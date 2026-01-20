@@ -47,6 +47,26 @@ function AutoFitViewOnDraft({ phones }: { phones: Phone[] }) {
 	return null;
 }
 
+/**
+ * Componente que força o ajuste da câmera quando acionado
+ */
+function FitViewHandler({ trigger, onComplete }: { trigger: boolean; onComplete: () => void }) {
+	const { fitView } = useReactFlow();
+
+	useEffect(() => {
+		if (trigger) {
+			// Pequeno delay para garantir que os nodes foram renderizados com novas posições
+			const timer = setTimeout(() => {
+				fitView({ padding: 0.2, duration: 800 });
+				onComplete();
+			}, 100);
+			return () => clearTimeout(timer);
+		}
+	}, [trigger, fitView, onComplete]);
+
+	return null;
+}
+
 type MinimapBehavior = 'auto' | 'visible' | 'hidden';
 
 function App() {
@@ -67,6 +87,7 @@ function App() {
 		icon: null,
 	});
 	const miniMapTimeoutRef = useRef<number | null>(null);
+	const [triggerFitView, setTriggerFitView] = useState(false);
 
 	// Calcular se há mudanças não salvas
 	const isDirty = useMemo(() => {
@@ -188,9 +209,10 @@ function App() {
 			setLastSavedPhones(result.phones);
 			setImportMessage({
 				type: 'success',
-				text: `✓ Projeto carregado! ${result.phones.length} aparelhos importados.`,
+				text: '✓ Projeto carregado!',
 			});
 			setTimeout(() => setImportMessage(null), 3000);
+			setTriggerFitView(true);
 		},
 		[isDirty, setPhones]
 	);
@@ -204,9 +226,10 @@ function App() {
 			setLastSavedPhones(pendingImport.phones);
 			setImportMessage({
 				type: 'success',
-				text: `✓ Projeto carregado! ${pendingImport.phones.length} aparelhos importados.`,
+				text: '✓ Projeto carregado!',
 			});
 			setTimeout(() => setImportMessage(null), 3000);
+			setTriggerFitView(true);
 		}
 		setShowConfirmImport(false);
 		setPendingImport(null);
@@ -410,9 +433,11 @@ function App() {
 				onMove={handleViewportChange}
 				onMoveStart={() => setShowMiniMap(true)}
 				fitView
+				minZoom={0.1} // Ajusta o zoom mínimo do canvas
 			>
 				<Background />
 				<AutoFitViewOnDraft phones={phones} />
+				<FitViewHandler trigger={triggerFitView} onComplete={() => setTriggerFitView(false)} />
 
 				{/* MiniMap estilizado */}
 				<MiniMap
