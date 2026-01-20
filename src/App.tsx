@@ -1,38 +1,40 @@
+import { useState } from 'react';
 import { Plus, Settings, Download } from 'lucide-react';
 import { PhoneCard } from './components/cards/PhoneCard';
+import { EditModal } from './components/modals/EditModal';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import type { Phone } from './types';
 
-const initialData: Phone[] = [
-  {
-    id: '1',
-    model: 'LG Velvet 5G',
-    year: 2020,
-    image: 'https://www.lg.com/content/dam/channel/wcms/br/images/celulares/lmg910emw_abraaw_essp_br_c/gallery/DZ-02.jpg?w=800',
-    specs: { battery: '4300mAh', weight: '180g', thickness: '7.9mm' },
-    badges: { network: '5G', resilience: 'medium', batteryStatus: 'neutral' },
-    highlight: 'Design Raindrop & Tela P-OLED',
-    price: { installment: '12x R$ 70,83', total: 'R$ 850' },
-    isMinimized: false,
-  },
-];
-
 function App() {
-  const [phones, setPhones] = useLocalStorage<Phone[]>('phonedeck-data', initialData);
+  const [phones, setPhones] = useLocalStorage<Phone[]>('phonedeck-data', []);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const handleAddPhone = () => {
     const newPhone: Phone = {
-      id: Date.now().toString(),
-      model: 'LG Velvet 5G',
-      year: 2020,
-      image: 'https://www.lg.com/content/dam/channel/wcms/br/images/celulares/lmg910emw_abraaw_essp_br_c/gallery/DZ-02.jpg?w=800',
-      specs: { battery: '4300mAh', weight: '180g', thickness: '7.9mm' },
-      badges: { network: '5G', resilience: 'medium', batteryStatus: 'neutral' },
-      highlight: 'Design Raindrop & Tela P-OLED',
-      price: { installment: '12x R$ 70,83', total: 'R$ 850' },
+      id: crypto.randomUUID(),
+      model: 'Novo Celular',
+      year: new Date().getFullYear(),
+      image: 'https://images.unsplash.com/photo-1511707267537-b85faf00021e?w=400&h=600&fit=crop',
+      specs: { battery: '---', weight: '---', thickness: '---' },
+      badges: { network: '4G', resilience: 'medium', batteryStatus: 'neutral' },
+      highlight: 'Adicione informações do aparelho',
+      price: { installment: 'A definir', total: 'A definir' },
       isMinimized: false,
     };
     setPhones([...phones, newPhone]);
+  };
+
+  const handleEditPhone = (id: string) => {
+    setEditingId(id);
+  };
+
+  const handleSaveEdit = (updatedPhone: Phone) => {
+    setPhones(phones.map((phone) => (phone.id === updatedPhone.id ? updatedPhone : phone)));
+    setEditingId(null);
+  };
+
+  const handleDeletePhone = (id: string) => {
+    setPhones(phones.filter((phone) => phone.id !== id));
   };
 
   const handleToggleMinimize = (id: string) => {
@@ -110,11 +112,22 @@ function App() {
                 key={phone.id}
                 data={phone}
                 onToggleMinimize={handleToggleMinimize}
+                onEdit={handleEditPhone}
+                onDelete={handleDeletePhone}
               />
             ))}
           </div>
         )}
       </main>
+
+      {/* Modal de Edição */}
+      {editingId && (
+        <EditModal
+          phone={phones.find((p) => p.id === editingId)!}
+          onSave={handleSaveEdit}
+          onCancel={() => setEditingId(null)}
+        />
+      )}
     </div>
   );
 }

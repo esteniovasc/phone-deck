@@ -1,9 +1,11 @@
-import { ChevronUp, ChevronDown, Zap, Shield, Wifi } from 'lucide-react';
+import { ChevronUp, ChevronDown, Zap, Shield, Wifi, Trash2, Edit } from 'lucide-react';
 import type { Phone } from '../../types';
 
 interface PhoneCardProps {
   data: Phone;
   onToggleMinimize: (id: string) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
 const getBatteryColor = (status: string) => {
@@ -37,17 +39,17 @@ const getNetworkColor = (network: string) => {
   return network === '5G' ? 'text-blue-600 bg-blue-50' : 'text-slate-600 bg-slate-50';
 };
 
-export function PhoneCard({ data, onToggleMinimize }: PhoneCardProps) {
+export function PhoneCard({ data, onToggleMinimize, onEdit, onDelete }: PhoneCardProps) {
   return (
     <div
-      className={`relative bg-white border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden ${
+      className={`group relative bg-white border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden ${
         data.isMinimized ? 'max-w-xs' : 'max-w-2xl'
       }`}
     >
       {/* Botão Toggle */}
       <button
         onClick={() => onToggleMinimize(data.id)}
-        className="absolute top-3 right-3 z-10 p-1.5 hover:bg-slate-100 rounded transition"
+        className="absolute top-3 right-20 z-10 p-1.5 hover:bg-slate-100 rounded transition"
         aria-label="Toggle minimize"
       >
         {data.isMinimized ? (
@@ -55,6 +57,26 @@ export function PhoneCard({ data, onToggleMinimize }: PhoneCardProps) {
         ) : (
           <ChevronUp className="w-5 h-5 text-slate-600" />
         )}
+      </button>
+
+      {/* Botão Editar */}
+      <button
+        onClick={() => onEdit(data.id)}
+        className="absolute top-3 right-11 z-10 p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition opacity-0 group-hover:opacity-100"
+        aria-label="Editar card"
+        title="Editar"
+      >
+        <Edit className="w-5 h-5" />
+      </button>
+
+      {/* Botão Excluir */}
+      <button
+        onClick={() => onDelete(data.id)}
+        className="absolute top-3 right-3 z-10 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition opacity-0 group-hover:opacity-100"
+        aria-label="Deletar card"
+        title="Excluir"
+      >
+        <Trash2 className="w-5 h-5" />
       </button>
 
       {/* LAYOUT MINIMIZADO */}
