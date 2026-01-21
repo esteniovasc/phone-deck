@@ -7,9 +7,10 @@ interface TopToolbarProps {
 	onReset: () => void;
 	onBackup: () => void;
 	onSettings: () => void;
+	isEmpty?: boolean;
 }
 
-export function TopToolbar({ onNewProject, onOpenProject, onReset, onBackup, onSettings }: TopToolbarProps) {
+export function TopToolbar({ onNewProject, onOpenProject, onReset, onBackup, onSettings, isEmpty }: TopToolbarProps) {
 	return (
 		<div className="h-14 flex items-center gap-1 p-1 bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-slate-400">
 			{/* Novo Projeto */}
@@ -42,10 +43,14 @@ export function TopToolbar({ onNewProject, onOpenProject, onReset, onBackup, onS
 			{/* Download (Backup) - Hover Verde */}
 			<button
 				onClick={onBackup}
-				className="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all duration-300 group"
-				title="Download / Salvar (Ctrl+S)"
+				disabled={isEmpty}
+				className={`p-1.5 rounded-lg transition-all duration-300 group ${isEmpty
+					? 'text-slate-300 cursor-not-allowed'
+					: 'text-slate-600 hover:text-emerald-600 hover:bg-emerald-50'
+					}`}
+				title={isEmpty ? 'Projeto vazio' : 'Download / Salvar (Ctrl+S)'}
 			>
-				<Download className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
+				<Download className={`w-6 h-6 transition-transform duration-300 ${!isEmpty && 'group-hover:scale-110'}`} />
 			</button>
 
 			<div className="w-px h-6 bg-slate-200 mx-1" />

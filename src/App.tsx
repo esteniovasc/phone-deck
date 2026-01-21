@@ -802,7 +802,7 @@ function App() {
 			</ReactFlow>
 
 			{/* Top Left Area: Project Name + Toolbar */}
-			<div className="fixed top-6 left-6 z-40 flex items-center gap-4">
+			<div className="fixed top-6 left-6 z-50 flex items-center gap-4">
 				{/* Título do Projeto */}
 				<button
 					onClick={() => setShowEditProjectName(true)}
@@ -829,11 +829,12 @@ function App() {
 					onReset={handleReset}
 					onBackup={handleBackupJSON}
 					onSettings={() => setShowSettingsModal(true)}
+					isEmpty={phones.length === 0}
 				/>
 			</div>
 
 			{/* Top Right Area: Filtros + Ajuda (Flex Container para Push) */}
-			<div className="fixed top-6 right-6 z-40 flex items-center gap-3 pointer-events-none">
+			<div className="fixed top-6 right-6 z-50 flex items-center gap-3 pointer-events-none">
 				{/* Barra de Filtros (Empurrada pelo botão de ajuda) */}
 				<ModeSelector
 					currentMode={analysisMode}
