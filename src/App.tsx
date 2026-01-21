@@ -12,6 +12,8 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { EditModal } from './components/modals/EditModal';
+import { NewProjectModal } from './components/modals/NewProjectModal';
+import { EditProjectNameModal } from './components/modals/EditProjectNameModal';
 import { FloatingDock } from './components/ui/FloatingDock';
 import { ModeSelector } from './components/ui/ModeSelector';
 import { NavigationControls } from './components/ui/NavigationControls';
@@ -67,17 +69,55 @@ function FitViewHandler({ trigger, onComplete }: { trigger: boolean; onComplete:
 	return null;
 }
 
+/**
+ * Componente que gerencia zoom via teclado
+ */
+function KeyboardZoomHandler({ 
+	onZoomIn, 
+	onZoomOut 
+}: { 
+	onZoomIn: () => void; 
+	onZoomOut: () => void; 
+}) {
+	const { zoomIn, zoomOut } = useReactFlow();
+
+	useEffect(() => {
+		const handleZoom = (action: 'in' | 'out') => {
+			if (action === 'in') {
+				zoomIn();
+				onZoomIn();
+			} else {
+				zoomOut();
+				onZoomOut();
+			}
+		};
+
+		// Armazenar referência para cleanup
+		(window as any).__phonedeckZoomHandler = handleZoom;
+
+		return () => {
+			delete (window as any).__phonedeckZoomHandler;
+		};
+	}, [zoomIn, zoomOut, onZoomIn, onZoomOut]);
+
+	return null;
+}
+
 type MinimapBehavior = 'auto' | 'visible' | 'hidden';
 
 function App() {
 	const [phones, setPhones] = useLocalStorage<Phone[]>('phonedeck-data', []);
+	const [projectName, setProjectName] = useLocalStorage<string>('phonedeck-project-name', 'Sem Título');
+	const [isViewMode, setIsViewMode] = useState(false);
+	const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+	const [showEditProjectName, setShowEditProjectName] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('default');
 	const [nodes, setNodes] = useState<Node[]>([]);
 	const [isDragOverCanvas, setIsDragOverCanvas] = useState(false);
 	const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 	const [lastSavedPhones, setLastSavedPhones] = useState<Phone[]>(phones);
-	const [pendingImport, setPendingImport] = useState<{ phones: Phone[]; fileName: string } | null>(null);
+	const [pendingImport, setPendingImport] = useState<{ phones: Phone[]; fileName: string; projectName?: string } | null>(null);
 	const [showConfirmImport, setShowConfirmImport] = useState(false);
 	const [showMiniMap, setShowMiniMap] = useState(false);
 	const [minimapBehavior, setMinimapBehavior] = useState<MinimapBehavior>('auto');
@@ -88,6 +128,16 @@ function App() {
 	});
 	const miniMapTimeoutRef = useRef<number | null>(null);
 	const [triggerFitView, setTriggerFitView] = useState(false);
+	const fitViewRef = useRef<((options?: any) => void) | null>(null);
+	
+	// Refs para handlers (para evitar problemas de dependência)
+	const handlersRef = useRef({
+		handleBackupJSON: () => {},
+		handleAddPhone: () => {},
+		handleToggleViewMode: () => {},
+		handleZoomIn: () => {},
+		handleZoomOut: () => {},
+	});
 
 	// Calcular se há mudanças não salvas
 	const isDirty = useMemo(() => {
@@ -199,13 +249,14 @@ function App() {
 
 			// Se há mudanças não salvas, pedir confirmação
 			if (isDirty) {
-				setPendingImport({ phones: result.phones, fileName: file.name });
+				setPendingImport({ phones: result.phones, fileName: file.name, projectName: result.projectName });
 				setShowConfirmImport(true);
 				return;
 			}
 
 			// Carregar direto se não há mudanças
 			setPhones(result.phones);
+			setProjectName(result.projectName);
 			setLastSavedPhones(result.phones);
 			setImportMessage({
 				type: 'success',
@@ -223,6 +274,7 @@ function App() {
 	const handleConfirmImport = useCallback(() => {
 		if (pendingImport) {
 			setPhones(pendingImport.phones);
+			setProjectName(pendingImport.projectName || 'Sem Título');
 			setLastSavedPhones(pendingImport.phones);
 			setImportMessage({
 				type: 'success',
@@ -322,40 +374,10 @@ function App() {
 		}, 2000);
 	}, [minimapBehavior]);
 
+	// Hook para fitView (usado em shortcuts)
+	// Removido - agora usa KeyboardShortcutsHandler dentro do ReactFlow
+
 	/**
-	 * Atalhos de Teclado Global
-	 */
-	useHotkeys((key) => {
-		if (key.toLowerCase() === 'v') {
-			setMinimapBehavior((prev) => {
-				let next: MinimapBehavior;
-				let message: string;
-				let icon: React.ReactNode;
-
-				if (prev === 'auto') {
-					next = 'visible';
-					message = 'Minimapa Sempre Visível';
-					icon = <Eye size={18} className="text-blue-400" />;
-				} else if (prev === 'visible') {
-					next = 'hidden';
-					message = 'Minimapa Oculto';
-					icon = <EyeOff size={18} className="text-slate-400" />;
-				} else {
-					next = 'auto';
-					message = 'Minimapa Automático';
-					icon = <Activity size={18} className="text-green-400" />;
-				}
-
-				setToastState({ show: true, message, icon });
-
-				// Atualizar visibilidade imediata
-				if (next === 'visible') setShowMiniMap(true);
-				if (next === 'hidden') setShowMiniMap(false);
-
-				return next;
-			});
-		}
-	});
 
 	/**
 	 * Sincronizar nodes quando phones ou analysisMode mudam
@@ -376,9 +398,11 @@ function App() {
 				y: Math.floor(index / 3) * 520,
 			},
 			type: 'phoneNode',
+			draggable: !isViewMode, // Desabilita drag em modo visualização
+			connectable: !isViewMode, // Desabilita conexões em modo visualização
 		} as Node));
 		setNodes(newNodes);
-	}, [phones, analysisMode, handleEditPhone, handleDeletePhone, handleSaveDraft]);
+	}, [phones, analysisMode, isViewMode, handleEditPhone, handleDeletePhone, handleSaveDraft]);
 
 	// Fazer focus no input do draft quando há novo card
 	useEffect(() => {
@@ -394,13 +418,14 @@ function App() {
 	}, [phones]);
 
 	const handleBackupJSON = () => {
-		exportProject(phones);
+		exportProject(phones, projectName);
 		setLastSavedPhones(phones);
-		setImportMessage({
-			type: 'success',
-			text: '✓ Projeto salvo com sucesso',
+		setToastState({
+			show: true,
+			message: `✓ Projeto "${projectName}" salvo`,
+			icon: <Activity size={20} />,
 		});
-		setTimeout(() => setImportMessage(null), 2000);
+		setTimeout(() => setToastState({ ...toastState, show: false }), 2000);
 	};
 
 	const handleReset = () => {
@@ -413,6 +438,157 @@ function App() {
 			setTimeout(() => setImportMessage(null), 2000);
 		}
 	};
+
+	const handleNewProject = useCallback(
+		(name: string) => {
+			setProjectName(name);
+			setPhones([]);
+			setLastSavedPhones([]);
+			setShowNewProjectModal(false);
+			setToastState({
+				show: true,
+				message: `✓ Novo projeto: "${name}"`,
+				icon: <Activity size={20} />,
+			});
+			setTimeout(() => setToastState({ ...toastState, show: false }), 2000);
+		},
+		[toastState]
+	);
+
+	const handleToggleViewMode = useCallback(() => {
+		const newMode = !isViewMode;
+		setIsViewMode(newMode);
+		setToastState({
+			show: true,
+			message: newMode ? '🔒 Modo Visualização' : '✏️ Modo Edição',
+			icon: newMode ? <Eye size={20} /> : <EyeOff size={20} />,
+		});
+		setTimeout(() => setToastState({ ...toastState, show: false }), 1500);
+	}, [isViewMode, toastState]);
+
+	const handleZoomIn = useCallback(() => {
+		setToastState({
+			show: true,
+			message: '🔍 Zoom +',
+			icon: <Activity size={20} />,
+		});
+	}, []);
+
+	const handleZoomOut = useCallback(() => {
+		setToastState({
+			show: true,
+			message: '🔍 Zoom -',
+			icon: <Activity size={20} />,
+		});
+	}, []);
+
+	// Sincronizar refs dos handlers (sem dependências)
+	useEffect(() => {
+		handlersRef.current = {
+			handleBackupJSON,
+			handleAddPhone,
+			handleToggleViewMode,
+			handleZoomIn,
+			handleZoomOut,
+		};
+	});
+
+	// Atalhos de Teclado Global (Todos fora do ReactFlow context)
+	useHotkeys((key, event) => {
+		// Ctrl+S para salvar
+		if (event.ctrlKey || event.metaKey) {
+			const lowerKey = key.toLowerCase();
+			if (lowerKey === 's') {
+				event.preventDefault();
+				handlersRef.current.handleBackupJSON();
+				return;
+			}
+		}
+
+		// Shift+N para novo projeto
+		if ((event.shiftKey && key.toLowerCase() === 'n') && !event.ctrlKey && !event.metaKey) {
+			event.preventDefault();
+			setShowNewProjectModal(true);
+			return;
+		}
+
+		// N para novo card
+		if (key.toLowerCase() === 'n' && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+			handlersRef.current.handleAddPhone();
+			return;
+		}
+
+		// C para centralizar
+		if (key.toLowerCase() === 'c' && !event.ctrlKey && !event.metaKey) {
+			setTriggerFitView(true);
+			setToastState({
+				show: true,
+				message: '🎯 Centralizado',
+				icon: <Activity size={20} />,
+			});
+			return;
+		}
+
+		// T para alternar modo visualização
+		if (key.toLowerCase() === 't' && !event.ctrlKey && !event.metaKey) {
+			handlersRef.current.handleToggleViewMode();
+			return;
+		}
+
+		// V para minimapa
+		if (key.toLowerCase() === 'v') {
+			setMinimapBehavior((prev) => {
+				let next: MinimapBehavior;
+				let message: string;
+				let icon: React.ReactNode;
+
+				if (prev === 'auto') {
+					next = 'visible';
+					message = 'Minimapa Sempre Visível';
+					icon = <Eye size={18} className="text-blue-400" />;
+				} else if (prev === 'visible') {
+					next = 'hidden';
+					message = 'Minimapa Oculto';
+					icon = <EyeOff size={18} className="text-slate-400" />;
+				} else {
+					next = 'auto';
+					message = 'Minimapa Automático';
+					icon = <Activity size={18} className="text-green-400" />;
+				}
+
+				// Usar timeout para atualizar toast e visibilidade após state update
+				setTimeout(() => {
+					setToastState({ show: true, message, icon });
+					if (next === 'visible') setShowMiniMap(true);
+					if (next === 'hidden') setShowMiniMap(false);
+				}, 0);
+
+				return next;
+			});
+		}
+
+		// + para aumentar zoom
+		if (key === '+' || key === '=') {
+			event.preventDefault();
+			handlersRef.current.handleZoomIn();
+			// Chamar zoom via referência global criada pelo KeyboardZoomHandler
+			if ((window as any).__phonedeckZoomHandler) {
+				(window as any).__phonedeckZoomHandler('in');
+			}
+			return;
+		}
+
+		// - para diminuir zoom
+		if (key === '-' || key === '_') {
+			event.preventDefault();
+			handlersRef.current.handleZoomOut();
+			// Chamar zoom via referência global criada pelo KeyboardZoomHandler
+			if ((window as any).__phonedeckZoomHandler) {
+				(window as any).__phonedeckZoomHandler('out');
+			}
+			return;
+		}
+	}, []);
 
 	return (
 		<div
@@ -438,6 +614,8 @@ function App() {
 				<Background />
 				<AutoFitViewOnDraft phones={phones} />
 				<FitViewHandler trigger={triggerFitView} onComplete={() => setTriggerFitView(false)} />
+				<KeyboardZoomHandler onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
+
 
 				{/* MiniMap estilizado */}
 				<MiniMap
@@ -465,11 +643,26 @@ function App() {
 				/>
 			</ReactFlow>
 
-			{/* Header Flutuante (Fixed + z-index alto) */}
-			<ModeSelector
-				currentMode={analysisMode}
-				onModeChange={setAnalysisMode}
-			/>
+			{/* Título do Projeto - Top Left */}
+			<div className="fixed top-6 left-6 z-40">
+			<button
+				onClick={() => setShowEditProjectName(true)}
+				className="px-4 py-2 bg-white/80 backdrop-blur-md rounded-lg shadow-lg border border-white/20 hover:bg-white/90 transition-all cursor-pointer group text-left"
+				title="Clique para editar nome do projeto"
+			>
+				<p className="text-sm font-medium text-slate-600">Projeto:</p>
+				<p className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{projectName}</p>
+				{isViewMode && (
+					<p className="text-xs text-amber-600 mt-1">🔒 Modo Visualização</p>
+				)}
+			</button>
+		</div>
+
+		{/* Header Flutuante (Fixed + z-index alto) */}
+		<ModeSelector
+			currentMode={analysisMode}
+			onModeChange={setAnalysisMode}
+		/>
 
 			{/* Navigation Controls (Zoom + Fit View) */}
 			<NavigationControls />
@@ -480,6 +673,8 @@ function App() {
 				onBackup={handleBackupJSON}
 				onReset={handleReset}
 				onOpenProject={handleOpenProjectClick}
+				onNewProject={() => setShowNewProjectModal(true)}
+				isEmpty={phones.length === 0}
 			/>
 
 			{/* Modal de Edição */}
@@ -488,6 +683,32 @@ function App() {
 					phone={phones.find((p) => p.id === editingId)!}
 					onSave={handleSaveEdit}
 					onCancel={() => setEditingId(null)}
+				/>
+			)}
+
+			{/* Modal de Novo Projeto */}
+			{showNewProjectModal && (
+				<NewProjectModal
+					onConfirm={handleNewProject}
+					onCancel={() => setShowNewProjectModal(false)}
+				/>
+			)}
+
+			{/* Modal de Editar Nome do Projeto */}
+			{showEditProjectName && (
+				<EditProjectNameModal
+					currentName={projectName}
+					onConfirm={(newName) => {
+						setProjectName(newName);
+						setShowEditProjectName(false);
+						setToastState({
+							show: true,
+							message: `✓ Projeto renomeado para "${newName}"`,
+							icon: <Activity size={20} />,
+						});
+						setTimeout(() => setToastState({ ...toastState, show: false }), 2000);
+					}}
+					onCancel={() => setShowEditProjectName(false)}
 				/>
 			)}
 

@@ -5,21 +5,37 @@
 
 import type { Phone } from '../types';
 
+export function sanitizeFileName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special chars
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single
+    .trim();
+}
+
 export interface ProjectData {
   version: string;
   createdAt: string;
+  meta: {
+    projectName: string;
+  };
   phones: Phone[];
 }
 
 /**
  * Exportar projeto como arquivo JSON
  * @param phones - Array de phones para exportar
+ * @param projectName - Nome do projeto para uso no filename
  * @returns void (dispara download automático)
  */
-export function exportProject(phones: Phone[]): void {
+export function exportProject(phones: Phone[], projectName: string = 'Sem Título'): void {
   const projectData: ProjectData = {
     version: '1.0',
     createdAt: new Date().toISOString(),
+    meta: {
+      projectName,
+    },
     phones: phones,
   };
 
@@ -27,10 +43,11 @@ export function exportProject(phones: Phone[]): void {
   const blob = new Blob([jsonString], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
 
-  // Criar link e disparar download
+  // Criar link e disparar download com nome sanitizado
   const link = document.createElement('a');
   link.href = url;
-  link.download = `phonedeck-project-${new Date().toISOString().split('T')[0]}.json`;
+  const sanitizedName = sanitizeFileName(projectName);
+  link.download = `phonedeck-${sanitizedName || 'projeto'}.json`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -89,12 +106,13 @@ function validateProjectStructure(data: unknown): data is ProjectData {
  */
 export async function importProject(
   file: File
-): Promise<{ phones: Phone[]; error?: string }> {
+): Promise<{ phones: Phone[]; projectName: string; error?: string }> {
   return new Promise((resolve) => {
     // Validar tipo de arquivo
     if (!file.name.endsWith('.json')) {
       resolve({
         phones: [],
+        projectName: 'Sem Título',
         error: 'Arquivo deve ser JSON (.json)',
       });
       return;
@@ -111,18 +129,21 @@ export async function importProject(
         if (!validateProjectStructure(data)) {
           resolve({
             phones: [],
+            projectName: 'Sem Título',
             error: 'Estrutura do arquivo inválida',
           });
           return;
         }
 
-        // Retornar dados válidos
+        // Retornar dados válidos com projectName (com fallback para compatibilidade)
         resolve({
           phones: data.phones,
+          projectName: data.meta?.projectName || 'Sem Título',
         });
       } catch (error) {
         resolve({
           phones: [],
+          projectName: 'Sem Título',
           error: `Erro ao ler arquivo: ${error instanceof Error ? error.message : 'desconhecido'}`,
         });
       }
