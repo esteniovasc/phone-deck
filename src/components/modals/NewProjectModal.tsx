@@ -35,6 +35,7 @@ export function NewProjectModal({ onConfirm, onCancel }: NewProjectModalProps) {
 			animate={{ opacity: 1 }}
 			exit={{ opacity: 0 }}
 			className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+			onClick={onCancel}
 		>
 			<motion.div
 				initial={{ scale: 0.95, opacity: 0 }}
@@ -42,6 +43,7 @@ export function NewProjectModal({ onConfirm, onCancel }: NewProjectModalProps) {
 				exit={{ scale: 0.95, opacity: 0 }}
 				transition={{ duration: 0.2 }}
 				className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full"
+				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="flex items-center justify-between mb-6">
 					<h2 className="text-2xl font-bold text-slate-900">Novo Projeto</h2>

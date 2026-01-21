@@ -43,6 +43,7 @@ export function HelpModal({ onClose }: HelpModalProps) {
 			animate={{ opacity: 1 }}
 			exit={{ opacity: 0 }}
 			className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+			onClick={onClose}
 		>
 			<motion.div
 				initial={{ scale: 0.95, opacity: 0 }}
@@ -50,6 +51,7 @@ export function HelpModal({ onClose }: HelpModalProps) {
 				exit={{ scale: 0.95, opacity: 0 }}
 				transition={{ duration: 0.2 }}
 				className="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+				onClick={(e) => e.stopPropagation()}
 			>
 				{/* Header */}
 				<div className="flex items-center justify-between mb-6">

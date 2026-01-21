@@ -150,6 +150,7 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
 			animate={{ opacity: 1 }}
 			exit={{ opacity: 0 }}
 			className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+			onClick={onCancel}
 		>
 			<motion.div
 				initial={{ scale: 0.95, opacity: 0 }}
@@ -157,6 +158,7 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
 				exit={{ scale: 0.95, opacity: 0 }}
 				transition={{ duration: 0.2 }}
 				className="bg-white rounded-lg shadow-lg max-w-2xl w-full flex flex-col max-h-[90vh]"
+				onClick={(e) => e.stopPropagation()}
 			>
 				{/* Header */}
 				<div className="flex items-center justify-between border-b border-slate-200 p-4 bg-white rounded-t-lg">
