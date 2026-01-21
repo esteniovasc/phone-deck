@@ -1,3 +1,47 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* --- CUSTOM CURSORS (Capitaine Cursors) --- */
+
+/* 1. Global Override */
+body {
+	cursor: url('/cursors/default.svg') 0 0, auto;
+}
+
+/* 2. Pointer Overrides (Interactive Elements) */
+button,
+a,
+[role="button"],
+.cursor-pointer,
+select,
+input[type="checkbox"],
+input[type="radio"],
+label {
+	cursor: url('/cursors/pointer.svg') 6 0, pointer !important;
+}
+
+/* 3. Text Overrides */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+textarea,
+.cursor-text {
+	cursor: url('/cursors/text.svg') 12 12, text !important;
+}
+
+/* 4. Grab/Grabbing Overrides (React Flow) */
+.react-flow__pane,
+.react-flow__node,
+.cursor-grab {
+	cursor: url('/cursors/grab.svg') 12 12, grab !important;
+}
+
+.react-flow__pane:active,
+.react-flow__pane.dragging,
+.react-flow__node:active,
+.react-flow__node.dragging,
+.cursor-grabbing,
+.cursor-grab:active {
+	cursor: url('/cursors/grabbing.svg') 12 12, grabbing !important;
+}
