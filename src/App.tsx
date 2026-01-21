@@ -812,7 +812,9 @@ function App() {
 					<div className="flex items-center gap-2">
 						<div>
 							<p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Nome do Projeto</p>
-							<p className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight">{projectName}</p>
+							<p className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight" title={projectName}>
+								{projectName.length > 30 ? `${projectName.substring(0, 30)}...` : projectName}
+							</p>
 						</div>
 						{isViewMode && (
 							<span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">🔒 Leitura</span>
