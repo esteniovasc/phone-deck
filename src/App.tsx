@@ -16,6 +16,7 @@ import { EditModal } from './components/modals/EditModal';
 import { NewProjectModal } from './components/modals/NewProjectModal';
 import { EditProjectNameModal } from './components/modals/EditProjectNameModal';
 import { HelpModal } from './components/modals/HelpModal';
+import { ResetBoardModal } from './components/modals/ResetBoardModal';
 import { FloatingDock } from './components/ui/FloatingDock';
 import { ModeSelector } from './components/ui/ModeSelector';
 import { NavigationControls } from './components/ui/NavigationControls';
@@ -132,6 +133,7 @@ function App() {
 	});
 	const miniMapTimeoutRef = useRef<number | null>(null);
 	const [triggerFitView, setTriggerFitView] = useState(false);
+	const [showResetModal, setShowResetModal] = useState(false);
 	const fitViewRef = useRef<((options?: any) => void) | null>(null);
 
 	// Refs para handlers (para evitar problemas de dependência)
@@ -433,14 +435,17 @@ function App() {
 	};
 
 	const handleReset = () => {
-		if (window.confirm('Tem certeza que deseja limpar o board? Essa ação não pode ser desfeita.')) {
-			setPhones([]);
-			setImportMessage({
-				type: 'success',
-				text: 'Board limpo com sucesso',
-			});
-			setTimeout(() => setImportMessage(null), 2000);
-		}
+		setShowResetModal(true);
+	};
+
+	const handleConfirmReset = () => {
+		setPhones([]);
+		setImportMessage({
+			type: 'success',
+			text: 'Board limpo com sucesso',
+		});
+		setShowResetModal(false);
+		setTimeout(() => setImportMessage(null), 2000);
 	};
 
 	const handleNewProject = useCallback(
@@ -710,6 +715,16 @@ function App() {
 					<NewProjectModal
 						onConfirm={handleNewProject}
 						onCancel={() => setShowNewProjectModal(false)}
+					/>
+				)}
+			</AnimatePresence>
+
+			{/* Modal de Limpar Board */}
+			<AnimatePresence>
+				{showResetModal && (
+					<ResetBoardModal
+						onConfirm={handleConfirmReset}
+						onCancel={() => setShowResetModal(false)}
 					/>
 				)}
 			</AnimatePresence>
