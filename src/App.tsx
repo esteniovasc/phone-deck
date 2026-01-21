@@ -14,9 +14,11 @@ import '@xyflow/react/dist/style.css';
 import { EditModal } from './components/modals/EditModal';
 import { NewProjectModal } from './components/modals/NewProjectModal';
 import { EditProjectNameModal } from './components/modals/EditProjectNameModal';
+import { HelpModal } from './components/modals/HelpModal';
 import { FloatingDock } from './components/ui/FloatingDock';
 import { ModeSelector } from './components/ui/ModeSelector';
 import { NavigationControls } from './components/ui/NavigationControls';
+import { HelpButton } from './components/ui/HelpButton';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useDecisionEngine } from './hooks/useDecisionEngine';
 import PhoneNode from './components/canvas/PhoneNode';
@@ -111,6 +113,7 @@ function App() {
 	const [isViewMode, setIsViewMode] = useState(false);
 	const [showNewProjectModal, setShowNewProjectModal] = useState(false);
 	const [showEditProjectName, setShowEditProjectName] = useState(false);
+	const [showHelpModal, setShowHelpModal] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('default');
 	const [nodes, setNodes] = useState<Node[]>([]);
@@ -590,6 +593,13 @@ function App() {
 			}
 			return;
 		}
+
+		// ? para ajuda (Shift+/)
+		if (event.shiftKey && event.key === '?') {
+			event.preventDefault();
+			setShowHelpModal(true);
+			return;
+		}
 	}, []);
 
 	return (
@@ -666,8 +676,11 @@ function App() {
 			onModeChange={setAnalysisMode}
 		/>
 
-			{/* Navigation Controls (Zoom + Fit View) */}
-			<NavigationControls />
+		{/* Botão de Ajuda - Top Right */}
+		<HelpButton onClick={() => setShowHelpModal(true)} />
+
+		{/* Navigation Controls (Zoom + Fit View) */}
+		<NavigationControls />
 
 			{/* Action Dock Flutuante (Inferior) */}
 			<FloatingDock
@@ -772,6 +785,9 @@ function App() {
 					</div>
 				</div>
 			)}
+
+			{/* Modal de Ajuda */}
+			{showHelpModal && <HelpModal onClose={() => setShowHelpModal(false)} />}
 
 			{/* Toast de Feedback */}
 			<Toast
