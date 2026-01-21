@@ -8,9 +8,10 @@ interface SettingsModalProps {
 	currentMode: NavigationMode;
 	onModeChange: (mode: NavigationMode) => void;
 	onClose: () => void;
+	onOpenCalibration?: () => void;
 }
 
-export function SettingsModal({ currentMode, onModeChange, onClose }: SettingsModalProps) {
+export function SettingsModal({ currentMode, onModeChange, onClose, onOpenCalibration }: SettingsModalProps) {
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') {
@@ -123,6 +124,28 @@ export function SettingsModal({ currentMode, onModeChange, onClose }: SettingsMo
 						<p className="mt-4 text-xs text-slate-500 bg-slate-100 p-3 rounded-lg border border-slate-200">
 							<strong>Dica:</strong> O gesto de pinça no trackpad para zoom funciona em ambos os modos.
 						</p>
+					</div>
+
+					{/* Advanced Settings */}
+					<div className="pt-4 border-t border-slate-100">
+						<h3 className="text-sm font-semibold text-slate-800 mb-3">Avançado</h3>
+						<button
+							onClick={onOpenCalibration}
+							className="w-full py-3 px-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-between group transition-colors"
+						>
+							<div className="flex items-center gap-3">
+								<div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 group-hover:border-blue-200 transition-colors">
+									<Settings className="w-4 h-4 text-slate-600 group-hover:text-blue-600" />
+								</div>
+								<div className="text-left">
+									<p className="text-sm font-medium text-slate-900">Personalizar Interação</p>
+									<p className="text-xs text-slate-500">Calibrar velocidade de zoom e scroll</p>
+								</div>
+							</div>
+							<div className="text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium">
+								Abrir
+							</div>
+						</button>
 					</div>
 				</div>
 

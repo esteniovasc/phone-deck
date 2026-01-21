@@ -31,6 +31,7 @@ import PhoneNode from './components/canvas/PhoneNode';
 import { Eye, EyeOff, Activity } from 'lucide-react';
 import { Toast } from './components/ui/Toast';
 import { useHotkeys } from './hooks/useHotkeys';
+import { CalibrationPanel, type InteractionSettings, DEFAULT_INTERACTION_SETTINGS } from './components/ui/CalibrationPanel';
 import { findSmartPosition } from './utils/positionFinder';
 import { importProject, exportProject } from './utils/projectManager';
 import type { Phone, AnalysisMode } from './types';
@@ -139,6 +140,44 @@ function App() {
 	const [triggerFitView, setTriggerFitView] = useState(false);
 	const [showResetModal, setShowResetModal] = useState(false);
 	const [showSettingsModal, setShowSettingsModal] = useState(false);
+	// --- Interaction Settings State ---
+	const [interactionSettings, setInteractionSettings] = useLocalStorage<InteractionSettings>('interaction-settings', DEFAULT_INTERACTION_SETTINGS);
+	const [tempSettings, setTempSettings] = useState<InteractionSettings>(interactionSettings);
+	const [showCalibrationPanel, setShowCalibrationPanel] = useState(false);
+
+	// Quando abrir o painel, sincroniza temp com o salvo
+	useEffect(() => {
+		if (showCalibrationPanel) {
+			setTempSettings(interactionSettings);
+		}
+	}, [showCalibrationPanel, interactionSettings]);
+
+	// Configuração ativa é a Temporária (se painel aberto) ou a Salva
+	const activeSettings = showCalibrationPanel ? tempSettings : interactionSettings;
+
+	const handleOpenCalibration = useCallback(() => {
+		setShowSettingsModal(false);
+		setShowCalibrationPanel(true);
+	}, []);
+
+	const handleUpdateTempSetting = useCallback((key: keyof InteractionSettings, value: number) => {
+		setTempSettings(prev => ({ ...prev, [key]: value }));
+	}, []);
+
+	const handleSaveCalibration = useCallback(() => {
+		setInteractionSettings(tempSettings);
+		setToastState({
+			show: true,
+			message: '✓ Calibração salva!',
+			icon: <Activity size={20} />,
+		});
+		setTimeout(() => setToastState(prev => ({ ...prev, show: false })), 2000);
+		setShowCalibrationPanel(false);
+	}, [tempSettings, setInteractionSettings]);
+
+	const handleResetCalibration = useCallback(() => {
+		setTempSettings(DEFAULT_INTERACTION_SETTINGS);
+	}, []);
 	const [navigationMode, setNavigationMode] = useState<NavigationMode>(() => {
 		const saved = localStorage.getItem('phone-deck-nav-mode');
 		return (saved as NavigationMode) || 'default';
@@ -495,19 +534,15 @@ function App() {
 				let zoomFactor = 1;
 
 				if (deltaMode === 1) {
-					// Mouse Wheel (Line) - Zoom mais suave e controlado por passos
-					// deltaY > 0 = Scroll Down (Zoom Out) -> 0.98 (2% redução)
-					// deltaY < 0 = Scroll Up (Zoom In) -> 1.02 (2% aumento)
-					zoomFactor = deltaY > 0 ? 0.98 : 1.02;
+					// Mouse Wheel (Line) - Usando settings calibradas
+					zoomFactor = deltaY > 0 ? (1 - activeSettings.mouseZoomStep) : (1 + activeSettings.mouseZoomStep);
 				} else {
-					// Touchpad Pinch (Pixel) - Lógica original que o usuário gostou
-					const ZOOM_SPEED_TOUCH = 0.015;
+					// Touchpad Pinch (Pixel)
 					// Limitamos o deltaY para evitar saltos gigantes caso o driver envie valores altos
 					const safeDeltaY = Math.sign(deltaY) * Math.min(Math.abs(deltaY), 50);
-					zoomFactor = 1 - safeDeltaY * ZOOM_SPEED_TOUCH;
+					zoomFactor = 1 - safeDeltaY * activeSettings.touchZoomSpeed;
 
-					// PROTEÇÃO CRÍTICA: Clamp para evitar que mouses enviando pixels causem zoom out instantâneo
-					// Impede alterações maiores que 10% por evento, protegendo contra deltaY=100
+					// PROTEÇÃO CRÍTICA: Clamp
 					zoomFactor = Math.max(0.9, Math.min(zoomFactor, 1.1));
 				}
 
@@ -530,18 +565,13 @@ function App() {
 			} else {
 				// --- PAN MANUAL ---
 
-				const PAN_SPEED_MOUSE = 0.6; // Valor intermediário
-				const PAN_SPEED_TOUCH = 1.0; // Perfeito para trackpad
-
 				// Usamos modo 1 (Line) como proxy para mouse, mas alguns drivers enviam 0.
 				const isMouseLike = deltaMode === 1;
-				const speed = isMouseLike ? PAN_SPEED_MOUSE : PAN_SPEED_TOUCH;
+				const speed = isMouseLike ? activeSettings.mousePanSpeed : activeSettings.touchPanSpeed;
 
 				const { x, y, zoom } = rfInstance.getViewport();
 
 				// SHIFT + Scroll = Scroll Horizontal
-				// Se o usuário segura SHIFT e estamos recebendo principalmente deltaY, invertemos para X.
-				// Verificamos se deltaX é pequeno para garantir que não é um touchpad fazendo diagonal.
 
 				let moveX = deltaX * speed;
 				let moveY = deltaY * speed;
@@ -558,7 +588,7 @@ function App() {
 				});
 			}
 		},
-		[navigationMode, rfInstance]
+		[navigationMode, rfInstance, activeSettings]
 	);
 
 	const handleToggleViewMode = useCallback(() => {
@@ -846,9 +876,20 @@ function App() {
 						currentMode={navigationMode}
 						onModeChange={setNavigationMode}
 						onClose={() => setShowSettingsModal(false)}
+						onOpenCalibration={handleOpenCalibration}
 					/>
 				)}
 			</AnimatePresence>
+
+			{/* Painel de Calibração */}
+			<CalibrationPanel
+				isOpen={showCalibrationPanel}
+				settings={tempSettings}
+				onUpdate={handleUpdateTempSetting}
+				onSave={handleSaveCalibration}
+				onCancel={() => setShowCalibrationPanel(false)}
+				onReset={handleResetCalibration}
+			/>
 
 			{/* Modal de Editar Nome do Projeto */}
 			<AnimatePresence>
