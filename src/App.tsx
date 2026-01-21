@@ -463,8 +463,10 @@ function App() {
 			message: newMode ? '🔒 Modo Visualização' : '✏️ Modo Edição',
 			icon: newMode ? <Eye size={20} /> : <EyeOff size={20} />,
 		});
-		setTimeout(() => setToastState({ ...toastState, show: false }), 1500);
-	}, [isViewMode, toastState]);
+		setTimeout(() => {
+			setToastState((prev) => ({ ...prev, show: false }));
+		}, 1500);
+	}, [isViewMode]);
 
 	const handleZoomIn = useCallback(() => {
 		setToastState({
