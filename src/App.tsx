@@ -125,7 +125,7 @@ function App() {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('default');
 	const [nodes, setNodes] = useState<Node[]>([]);
-	const [isDragOverCanvas, setIsDragOverCanvas] = useState(false);
+
 	const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 	const [lastSavedPhones, setLastSavedPhones] = useState<Phone[]>(phones);
 	const [pendingImport, setPendingImport] = useState<{ phones: Phone[]; fileName: string; projectName?: string } | null>(null);
@@ -371,54 +371,7 @@ function App() {
 		input.click();
 	}, [handleProcessImport]);
 
-	/**
-	 * Handler para Drag Over no canvas
-	 */
-	const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-		e.preventDefault();
-		e.stopPropagation();
-		setIsDragOverCanvas(true);
-	}, []);
 
-	/**
-	 * Handler para Drag Leave do canvas
-	 */
-	const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-		e.preventDefault();
-		e.stopPropagation();
-		// Só remove o estado se sair do container principal
-		if (e.currentTarget === e.target) {
-			setIsDragOverCanvas(false);
-		}
-	}, []);
-
-	/**
-	 * Handler para Drop de arquivo no canvas
-	 */
-	const handleDrop = useCallback(
-		async (e: React.DragEvent<HTMLDivElement>) => {
-			e.preventDefault();
-			e.stopPropagation();
-			setIsDragOverCanvas(false);
-
-			const files = e.dataTransfer.files;
-			if (!files || files.length === 0) return;
-
-			const file = files[0];
-
-			// Verificar se é arquivo JSON
-			if (file.name.endsWith('.json')) {
-				await handleProcessImport(file);
-			} else {
-				setImportMessage({
-					type: 'error',
-					text: 'Por favor, arraste um arquivo .json',
-				});
-				setTimeout(() => setImportMessage(null), 3000);
-			}
-		},
-		[handleProcessImport]
-	);
 
 	const handleViewportChange = useCallback(() => {
 		setShowMiniMap(true);
@@ -775,11 +728,7 @@ function App() {
 	return (
 		<div
 			ref={reactFlowWrapper}
-			className={`w-screen h-screen bg-slate-50 relative transition-colors ${isDragOverCanvas ? 'bg-blue-50' : ''
-				}`}
-			onDragOver={handleDragOver}
-			onDragLeave={handleDragLeave}
-			onDrop={handleDrop}
+			className="w-screen h-screen bg-slate-50 relative transition-colors"
 		>
 			{/* React Flow Canvas */}
 			<ReactFlow
@@ -1023,14 +972,7 @@ function App() {
 			)}
 
 			{/* Drag & Drop Overlay */}
-			{isDragOverCanvas && (
-				<div className="fixed inset-0 z-30 flex items-center justify-center bg-blue-500/20 backdrop-blur-sm pointer-events-none">
-					<div className="bg-blue-600 text-white px-8 py-6 rounded-lg shadow-lg text-center">
-						<p className="text-xl font-semibold">📁 Solte o arquivo .json aqui</p>
-						<p className="text-blue-100 text-sm mt-1">Arraste seu projeto para carregar</p>
-					</div>
-				</div>
-			)}
+
 
 			{/* Modal de Ajuda */}
 			<AnimatePresence>

@@ -42,7 +42,10 @@ export function NavigationControls({
 	}, []);
 
 	const clearTimer = () => {
-		if (timeoutRef.current) clearTimeout(timeoutRef.current);
+		if (timeoutRef.current) {
+			clearTimeout(timeoutRef.current);
+			timeoutRef.current = null;
+		}
 	};
 
 	const resetHideTimer = () => {
@@ -54,14 +57,35 @@ export function NavigationControls({
 		}, 5000); // 5 segundos
 	};
 
-	const handleMouseEnter = () => {
-		setIsVisible(true);
-		clearTimer();
-	};
+	// Monitorar movimento do mouse globalmente para evitar áreas de bloqueio
+	useEffect(() => {
+		const handleMouseMove = (e: MouseEvent) => {
+			if (isPinned) return; // Se pinado, ignora mouse
 
-	const handleMouseLeave = () => {
-		resetHideTimer();
-	};
+			// Zona de ativação: Canto inferior esquerdo (300x300px)
+			// + Margem de segurança para manter visível enquanto o mouse está sobre o dock
+			const zoneSize = 300;
+			const isInZone = e.clientX < zoneSize && e.clientY > (window.innerHeight - zoneSize);
+
+			// Também considerar se o mouse está sobre o próprio componente (bounding box)
+			// Mas a zona de 300px geralmente cobre bem o dock
+
+			if (isInZone) {
+				setIsVisible(true);
+				clearTimer();
+			} else {
+				// Se sair da zona e estava visível, inicia o timer para esconder
+				if (isVisible && !timeoutRef.current) {
+					resetHideTimer();
+				}
+			}
+		};
+
+		window.addEventListener('mousemove', handleMouseMove);
+		return () => {
+			window.removeEventListener('mousemove', handleMouseMove);
+		};
+	}, [isPinned, isVisible]);
 
 	const togglePin = () => {
 		const newPinned = !isPinned;
@@ -81,105 +105,100 @@ export function NavigationControls({
 	};
 
 	return (
-		// Zona de Detecção Invisível (Trigger Area)
+		// Container do Dock (sujeito à "sucção lateral" e "gravidade")
+		// Removemos a div de bloqueio e deixamos apenas o componente visual
 		<div
-			className="fixed bottom-0 left-0 w-64 h-64 z-40 flex items-end justify-start pointer-events-none"
+			className={`
+				fixed bottom-8 left-8 flex flex-col items-center gap-2 px-3 py-3 z-50
+				bg-white/80 backdrop-blur-md rounded-full shadow-xl border border-white/20
+				transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-left
+				${isVisible
+					? 'translate-x-0 scale-100 opacity-100 rotate-0'
+					: '-translate-x-24 scale-50 -rotate-45 opacity-0 blur-md pointer-events-none'} 
+			`}
+			// Manter visível se o mouse estiver sobre o dock, independente da zona global
+			onMouseEnter={() => {
+				setIsVisible(true);
+				clearTimer();
+			}}
+			onMouseLeave={() => resetHideTimer()}
 		>
-			{/* Área interativa real que captura o mouse */}
-			<div
-				className="w-full h-full pointer-events-auto"
-				onMouseEnter={handleMouseEnter}
-				onMouseLeave={handleMouseLeave}
+			{/* Botão de Pin (Novo) */}
+			<button
+				onClick={togglePin}
+				className={`
+					flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300
+					hover:bg-slate-100 cursor-pointer mb-2
+					${isPinned ? 'text-blue-500' : 'text-slate-400 hover:text-slate-600'}
+				`}
+				title={isPinned ? "Desafixar Dock" : "Fixar Dock"}
 			>
-				{/* Container do Dock (sujeito à "sucção lateral") */}
-				<div
-					className={`
-						absolute bottom-8 left-8 flex flex-col items-center gap-2 px-3 py-3 
-						bg-white/80 backdrop-blur-md rounded-full shadow-xl border border-white/20
-						transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-left
-						${isVisible
-							? 'translate-x-0 scale-100 opacity-100 rotate-0'
-							: '-translate-x-16 scale-75 -rotate-12 opacity-0 blur-sm'} 
-					`}
-				>
-					{/* Botão de Pin (Novo) */}
-					<button
-						onClick={togglePin}
-						className={`
-							flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300
-							hover:bg-slate-100 cursor-pointer mb-2
-							${isPinned ? 'text-blue-500' : 'text-slate-400 hover:text-slate-600'}
-						`}
-						title={isPinned ? "Desafixar Dock" : "Fixar Dock"}
-					>
-						{isPinned ? <Pin size={16} fill="currentColor" /> : <PinOff size={16} />}
-					</button>
+				{isPinned ? <Pin size={16} fill="currentColor" /> : <PinOff size={16} />}
+			</button>
 
-					{/* Zoom In (+ key usually, but here mouse) */}
-					<button
-						onClick={onZoomIn}
-						className="flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 hover:bg-white hover:text-slate-900 hover:scale-110 hover:shadow-lg text-slate-600 hover:shadow-md cursor-pointer"
-						title="Zoom In"
-					>
-						<Plus size={20} />
-					</button>
+			{/* Zoom In (+ key usually, but here mouse) */}
+			<button
+				onClick={onZoomIn}
+				className="flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 hover:bg-white hover:text-slate-900 hover:scale-110 hover:shadow-lg text-slate-600 hover:shadow-md cursor-pointer"
+				title="Zoom In"
+			>
+				<Plus size={20} />
+			</button>
 
-					{/* Zoom Out */}
-					<button
-						onClick={onZoomOut}
-						className="flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 hover:bg-white hover:text-slate-900 hover:scale-110 hover:shadow-lg text-slate-600 hover:shadow-md cursor-pointer"
-						title="Zoom Out"
-					>
-						<Minus size={20} />
-					</button>
+			{/* Zoom Out */}
+			<button
+				onClick={onZoomOut}
+				className="flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 hover:bg-white hover:text-slate-900 hover:scale-110 hover:shadow-lg text-slate-600 hover:shadow-md cursor-pointer"
+				title="Zoom Out"
+			>
+				<Minus size={20} />
+			</button>
 
-					<div className="w-6 h-px bg-slate-200/50" />
+			<div className="w-6 h-px bg-slate-200/50" />
 
-					{/* Fit View (C) */}
-					<button
-						onClick={handleFitViewInternal}
-						className="flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 hover:bg-white hover:text-slate-900 hover:scale-110 hover:shadow-lg text-slate-600 hover:shadow-md cursor-pointer"
-						title="Centralizar (C)"
-					>
-						<Maximize2 size={20} />
-					</button>
+			{/* Fit View (C) */}
+			<button
+				onClick={handleFitViewInternal}
+				className="flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 hover:bg-white hover:text-slate-900 hover:scale-110 hover:shadow-lg text-slate-600 hover:shadow-md cursor-pointer"
+				title="Centralizar (C)"
+			>
+				<Maximize2 size={20} />
+			</button>
 
-					<div className="w-6 h-px bg-slate-200/50" />
+			<div className="w-6 h-px bg-slate-200/50" />
 
-					{/* Lock/Unlock (T) */}
-					<button
-						onClick={onToggleLock}
-						className={`
-							flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300
-							hover:scale-110 hover:shadow-lg cursor-pointer
-							${isLocked ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : 'text-slate-600 hover:bg-white hover:text-slate-900'}
-						`}
-						title={isLocked ? "Desbloquear (T)" : "Bloquear Edição (T)"}
-					>
-						{isLocked ? <Lock size={20} /> : <Unlock size={20} />}
-					</button>
+			{/* Lock/Unlock (T) */}
+			<button
+				onClick={onToggleLock}
+				className={`
+					flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300
+					hover:scale-110 hover:shadow-lg cursor-pointer
+					${isLocked ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : 'text-slate-600 hover:bg-white hover:text-slate-900'}
+				`}
+				title={isLocked ? "Desbloquear (T)" : "Bloquear Edição (T)"}
+			>
+				{isLocked ? <Lock size={20} /> : <Unlock size={20} />}
+			</button>
 
-					{/* Minimap (V) */}
-					<button
-						onClick={onToggleMinimap}
-						className={`
-							flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300
-							hover:scale-110 hover:shadow-lg cursor-pointer relative
-							${minimapState === 'visible' ? 'bg-blue-100 text-blue-600' : ''}
-							${minimapState === 'hidden' ? 'text-slate-400 hover:text-slate-600' : 'text-slate-600 hover:text-blue-600'}
-						`}
-						title={`Minimapa: ${minimapState === 'auto' ? 'Auto' : minimapState === 'visible' ? 'Visível' : 'Oculto'} (V)`}
-					>
-						<Map size={20} className={minimapState === 'auto' ? 'opacity-80' : ''} />
-						{minimapState === 'auto' && (
-							<span className="absolute top-2 right-2 flex h-2 w-2">
-								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-								<span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
-							</span>
-						)}
-					</button>
-				</div>
-			</div>
+			{/* Minimap (V) */}
+			<button
+				onClick={onToggleMinimap}
+				className={`
+					flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300
+					hover:scale-110 hover:shadow-lg cursor-pointer relative
+					${minimapState === 'visible' ? 'bg-blue-100 text-blue-600' : ''}
+					${minimapState === 'hidden' ? 'text-slate-400 hover:text-slate-600' : 'text-slate-600 hover:text-blue-600'}
+				`}
+				title={`Minimapa: ${minimapState === 'auto' ? 'Auto' : minimapState === 'visible' ? 'Visível' : 'Oculto'} (V)`}
+			>
+				<Map size={20} className={minimapState === 'auto' ? 'opacity-80' : ''} />
+				{minimapState === 'auto' && (
+					<span className="absolute top-2 right-2 flex h-2 w-2">
+						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+						<span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+					</span>
+				)}
+			</button>
 		</div>
 	);
 }
