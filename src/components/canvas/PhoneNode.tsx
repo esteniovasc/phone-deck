@@ -14,31 +14,33 @@ import { PhoneCard } from '../cards/PhoneCard';
  */
 
 interface PhoneNodeData {
-  phone: Phone;
-  visualStatus: VisualStatus;
-  onEdit: (phone: Phone) => void;
-  onDelete: (id: string) => void;
-  onSaveDraft?: (id: string, modelName: string) => void;
+	phone: Phone;
+	visualStatus: VisualStatus;
+	onEdit: (phone: Phone) => void;
+	onDelete: (id: string) => void;
+	onSaveDraft?: (id: string, modelName: string) => void;
+	isReadOnly: boolean;
 }
 
 export default function PhoneNode(props: NodeProps & { data: PhoneNodeData }) {
-  const { phone, visualStatus, onEdit, onDelete, onSaveDraft } = props.data;
+	const { phone, visualStatus, onEdit, onDelete, onSaveDraft, isReadOnly } = props.data;
 
-  return (
-    <div className="relative">
-      {/* Handles invisíveis para futuras conexões */}
-      <Handle position={Position.Top} type="target" style={{ visibility: 'hidden' }} />
-      <Handle position={Position.Bottom} type="source" style={{ visibility: 'hidden' }} />
-      
-      {/* Render do PhoneCard com propriedades dinâmicas */}
-      <PhoneCard
-        data={phone}
-        onEdit={() => onEdit(phone)}
-        onDelete={() => onDelete(phone.id)}
-        onToggleMinimize={() => {}}
-        onSaveDraft={onSaveDraft}
-        visualStatus={visualStatus}
-      />
-    </div>
-  );
+	return (
+		<div className="relative">
+			{/* Handles invisíveis para futuras conexões */}
+			<Handle position={Position.Top} type="target" style={{ visibility: 'hidden' }} />
+			<Handle position={Position.Bottom} type="source" style={{ visibility: 'hidden' }} />
+
+			{/* Render do PhoneCard com propriedades dinâmicas */}
+			<PhoneCard
+				data={phone}
+				onEdit={() => onEdit(phone)}
+				onDelete={() => onDelete(phone.id)}
+				onToggleMinimize={() => { }}
+				onSaveDraft={onSaveDraft}
+				visualStatus={visualStatus}
+				isReadOnly={isReadOnly}
+			/>
+		</div>
+	);
 }

@@ -405,6 +405,7 @@ function App() {
 				onEdit: handleEditPhone,
 				onDelete: handleDeletePhone,
 				onSaveDraft: handleSaveDraft,
+				isReadOnly: isViewMode,
 			},
 			position: phone.position || {
 				x: (index % 3) * 420,
