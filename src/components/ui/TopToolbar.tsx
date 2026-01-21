@@ -1,4 +1,3 @@
-import React from 'react';
 import { Download, Settings, RotateCcw, FolderOpen, FileText } from 'lucide-react';
 
 interface TopToolbarProps {

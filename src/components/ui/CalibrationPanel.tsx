@@ -1,4 +1,3 @@
-import React from 'react';
 import { Save, RotateCcw, X, Activity } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 

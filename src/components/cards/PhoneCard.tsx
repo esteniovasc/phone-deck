@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown, Zap, Shield, Wifi, Trash2, Edit } from 'lucide-react';
+import { Zap, Shield, Wifi, Trash2, Edit } from 'lucide-react';
 import { useState } from 'react';
 import type { Phone, VisualStatus } from '../../types';
 
@@ -55,7 +55,7 @@ const getVisualStatusClasses = (status: VisualStatus): string => {
 	}
 };
 
-export function PhoneCard({ data, visualStatus, onToggleMinimize, onEdit, onDelete, onSaveDraft, isReadOnly = false }: PhoneCardProps) {
+export function PhoneCard({ data, visualStatus, onEdit, onDelete, onSaveDraft, isReadOnly = false }: PhoneCardProps) {
 	// ... existing state and handlers ...
 	const [draftName, setDraftName] = useState(data.model);
 	const handleDraftNameSave = () => {

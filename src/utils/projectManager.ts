@@ -152,6 +152,7 @@ export async function importProject(
     reader.onerror = () => {
       resolve({
         phones: [],
+        projectName: '',
         error: 'Erro ao ler arquivo',
       });
     };

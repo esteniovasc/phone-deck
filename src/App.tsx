@@ -9,7 +9,6 @@ import {
 	type OnNodesChange,
 	type OnEdgesChange,
 	useReactFlow,
-	Controls,
 	PanOnScrollMode,
 	type ReactFlowInstance,
 } from '@xyflow/react';
@@ -28,7 +27,7 @@ import { HelpButton } from './components/ui/HelpButton';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useDecisionEngine } from './hooks/useDecisionEngine';
 import PhoneNode from './components/canvas/PhoneNode';
-import { Eye, EyeOff, Activity, Lock, Unlock, Map, Maximize2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Activity, Lock, Unlock, Map, Maximize2 } from 'lucide-react';
 import { Toast } from './components/ui/Toast';
 import { useHotkeys } from './hooks/useHotkeys';
 import { CalibrationPanel, type InteractionSettings, DEFAULT_INTERACTION_SETTINGS } from './components/ui/CalibrationPanel';
@@ -187,8 +186,6 @@ function App() {
 	useEffect(() => {
 		localStorage.setItem('phone-deck-nav-mode', navigationMode);
 	}, [navigationMode]);
-
-	const fitViewRef = useRef<((options?: any) => void) | null>(null);
 
 	// Refs para handlers (para evitar problemas de dependência)
 	const handlersRef = useRef({
