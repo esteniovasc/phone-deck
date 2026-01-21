@@ -11,6 +11,7 @@ import {
 	useReactFlow,
 	Controls,
 	PanOnScrollMode,
+	type ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { AnimatePresence } from 'framer-motion';
@@ -477,6 +478,89 @@ function App() {
 		[toastState]
 	);
 
+	// --- Lógica de Navegação Customizada (Figma Mode) ---
+	const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+	const reactFlowWrapper = useRef<HTMLDivElement>(null);
+	const handleFigmaWheel = useCallback(
+		(event: React.WheelEvent) => {
+			if (navigationMode !== 'figma' || !rfInstance) return;
+
+			const { deltaX, deltaY, ctrlKey, metaKey, shiftKey, deltaMode, clientX, clientY } = event;
+			const isZoom = ctrlKey || metaKey;
+
+			if (isZoom) {
+				// --- ZOOM MANUAL ---
+				// deltaMode: 0 (Pixel/Touch), 1 (Line/Mouse)
+
+				let zoomFactor = 1;
+
+				if (deltaMode === 1) {
+					// Mouse Wheel (Line) - Zoom mais suave e controlado por passos
+					// deltaY > 0 = Scroll Down (Zoom Out) -> 0.98 (2% redução)
+					// deltaY < 0 = Scroll Up (Zoom In) -> 1.02 (2% aumento)
+					zoomFactor = deltaY > 0 ? 0.98 : 1.02;
+				} else {
+					// Touchpad Pinch (Pixel) - Lógica original que o usuário gostou
+					const ZOOM_SPEED_TOUCH = 0.015;
+					// Limitamos o deltaY para evitar saltos gigantes caso o driver envie valores altos
+					const safeDeltaY = Math.sign(deltaY) * Math.min(Math.abs(deltaY), 50);
+					zoomFactor = 1 - safeDeltaY * ZOOM_SPEED_TOUCH;
+
+					// PROTEÇÃO CRÍTICA: Clamp para evitar que mouses enviando pixels causem zoom out instantâneo
+					// Impede alterações maiores que 10% por evento, protegendo contra deltaY=100
+					zoomFactor = Math.max(0.9, Math.min(zoomFactor, 1.1));
+				}
+
+				const currentZoom = rfInstance.getViewport().zoom;
+				const newZoom = Math.max(0.1, Math.min(currentZoom * zoomFactor, 5)); // Min 0.1, Max 5
+
+				// Calcular Ponto Central (para zoom ir na direção do mouse)
+				if (reactFlowWrapper.current) {
+					const bounds = reactFlowWrapper.current.getBoundingClientRect();
+					const x = clientX - bounds.left;
+					const y = clientY - bounds.top;
+
+					const { x: viewX, y: viewY } = rfInstance.getViewport();
+
+					const newViewX = x - (x - viewX) * (newZoom / currentZoom);
+					const newViewY = y - (y - viewY) * (newZoom / currentZoom);
+
+					rfInstance.setViewport({ x: newViewX, y: newViewY, zoom: newZoom });
+				}
+			} else {
+				// --- PAN MANUAL ---
+
+				const PAN_SPEED_MOUSE = 0.6; // Valor intermediário
+				const PAN_SPEED_TOUCH = 1.0; // Perfeito para trackpad
+
+				// Usamos modo 1 (Line) como proxy para mouse, mas alguns drivers enviam 0.
+				const isMouseLike = deltaMode === 1;
+				const speed = isMouseLike ? PAN_SPEED_MOUSE : PAN_SPEED_TOUCH;
+
+				const { x, y, zoom } = rfInstance.getViewport();
+
+				// SHIFT + Scroll = Scroll Horizontal
+				// Se o usuário segura SHIFT e estamos recebendo principalmente deltaY, invertemos para X.
+				// Verificamos se deltaX é pequeno para garantir que não é um touchpad fazendo diagonal.
+
+				let moveX = deltaX * speed;
+				let moveY = deltaY * speed;
+
+				if (shiftKey && Math.abs(deltaX) < 5 && deltaY !== 0) {
+					moveX = deltaY * speed;
+					moveY = 0;
+				}
+
+				rfInstance.setViewport({
+					x: x - moveX,
+					y: y - moveY,
+					zoom
+				});
+			}
+		},
+		[navigationMode, rfInstance]
+	);
+
 	const handleToggleViewMode = useCallback(() => {
 		const newMode = !isViewMode;
 		setIsViewMode(newMode);
@@ -623,6 +707,7 @@ function App() {
 
 	return (
 		<div
+			ref={reactFlowWrapper}
 			className={`w-screen h-screen bg-slate-50 relative transition-colors ${isDragOverCanvas ? 'bg-blue-50' : ''
 				}`}
 			onDragOver={handleDragOver}
@@ -639,11 +724,17 @@ function App() {
 				nodeTypes={nodeTypes}
 				onMove={handleViewportChange}
 				onMoveStart={() => setShowMiniMap(true)}
+				onInit={setRfInstance}
+				onWheel={navigationMode === 'figma' ? handleFigmaWheel : undefined}
 				fitView
 				minZoom={0.1} // Ajusta o zoom mínimo do canvas
-				panOnScroll={navigationMode === 'figma'}
+
+				// Configurações de Navegação
+				panOnScroll={false} // Desativado (Default = Zoom, Figma = Manual)
 				zoomOnScroll={navigationMode === 'default'}
+				zoomOnPinch={navigationMode === 'default'} // Figma = Manual (com boost)
 				panOnScrollMode={PanOnScrollMode.Free}
+
 				selectionOnDrag={false}
 				panOnDrag={true} // Permite arrastar com botão esquerdo
 			>
