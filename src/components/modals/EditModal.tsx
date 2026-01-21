@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { X, Download, Image as ImageIcon, Layout, Tag, Smartphone } from 'lucide-react';
 import type { Phone } from '../../types';
 import { parseGsmArenaHtml, parseGsmArenaHtmlFallback } from '../../utils/gsmParser';
@@ -133,9 +134,30 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
 		onSave(formData);
 	};
 
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') {
+				onCancel();
+			}
+		};
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [onCancel]);
+
 	return (
-		<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-			<div className="bg-white rounded-lg shadow-lg max-w-2xl w-full flex flex-col max-h-[90vh]">
+		<motion.div
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			exit={{ opacity: 0 }}
+			className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+		>
+			<motion.div
+				initial={{ scale: 0.95, opacity: 0 }}
+				animate={{ scale: 1, opacity: 1 }}
+				exit={{ scale: 0.95, opacity: 0 }}
+				transition={{ duration: 0.2 }}
+				className="bg-white rounded-lg shadow-lg max-w-2xl w-full flex flex-col max-h-[90vh]"
+			>
 				{/* Header */}
 				<div className="flex items-center justify-between border-b border-slate-200 p-4 bg-white rounded-t-lg">
 					<h2 className="text-xl font-bold text-slate-900">Editar Celular</h2>
@@ -153,8 +175,8 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
 					<button
 						onClick={() => setActiveTab('general')}
 						className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'general'
-								? 'border-blue-600 text-blue-600'
-								: 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+							? 'border-blue-600 text-blue-600'
+							: 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
 							}`}
 					>
 						<Layout className="w-4 h-4" />
@@ -163,8 +185,8 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
 					<button
 						onClick={() => setActiveTab('specs')}
 						className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'specs'
-								? 'border-blue-600 text-blue-600'
-								: 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+							? 'border-blue-600 text-blue-600'
+							: 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
 							}`}
 					>
 						<Tag className="w-4 h-4" />
@@ -173,8 +195,8 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
 					<button
 						onClick={() => setActiveTab('media')}
 						className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'media'
-								? 'border-blue-600 text-blue-600'
-								: 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+							? 'border-blue-600 text-blue-600'
+							: 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
 							}`}
 					>
 						<ImageIcon className="w-4 h-4" />
@@ -533,7 +555,7 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
 						</button>
 					</div>
 				</div>
-			</div>
+			</motion.div>
 
 			{/* ImageUploadModal Integration */}
 			{showImageUploadModal && (
@@ -543,6 +565,6 @@ export function EditModal({ phone, onSave, onCancel }: EditModalProps) {
 					onCancel={() => setShowImageUploadModal(false)}
 				/>
 			)}
-		</div>
+		</motion.div>
 	);
 }

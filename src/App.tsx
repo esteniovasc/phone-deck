@@ -11,6 +11,7 @@ import {
 	useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { AnimatePresence } from 'framer-motion';
 import { EditModal } from './components/modals/EditModal';
 import { NewProjectModal } from './components/modals/NewProjectModal';
 import { EditProjectNameModal } from './components/modals/EditProjectNameModal';
@@ -74,12 +75,12 @@ function FitViewHandler({ trigger, onComplete }: { trigger: boolean; onComplete:
 /**
  * Componente que gerencia zoom via teclado
  */
-function KeyboardZoomHandler({ 
-	onZoomIn, 
-	onZoomOut 
-}: { 
-	onZoomIn: () => void; 
-	onZoomOut: () => void; 
+function KeyboardZoomHandler({
+	onZoomIn,
+	onZoomOut
+}: {
+	onZoomIn: () => void;
+	onZoomOut: () => void;
 }) {
 	const { zoomIn, zoomOut } = useReactFlow();
 
@@ -132,14 +133,14 @@ function App() {
 	const miniMapTimeoutRef = useRef<number | null>(null);
 	const [triggerFitView, setTriggerFitView] = useState(false);
 	const fitViewRef = useRef<((options?: any) => void) | null>(null);
-	
+
 	// Refs para handlers (para evitar problemas de dependência)
 	const handlersRef = useRef({
-		handleBackupJSON: () => {},
-		handleAddPhone: () => {},
-		handleToggleViewMode: () => {},
-		handleZoomIn: () => {},
-		handleZoomOut: () => {},
+		handleBackupJSON: () => { },
+		handleAddPhone: () => { },
+		handleToggleViewMode: () => { },
+		handleZoomIn: () => { },
+		handleZoomOut: () => { },
 	});
 
 	// Calcular se há mudanças não salvas
@@ -657,30 +658,30 @@ function App() {
 
 			{/* Título do Projeto - Top Left */}
 			<div className="fixed top-6 left-6 z-40">
-			<button
-				onClick={() => setShowEditProjectName(true)}
-				className="px-4 py-2 bg-white/80 backdrop-blur-md rounded-lg shadow-lg border border-white/20 hover:bg-white/90 transition-all cursor-pointer group text-left"
-				title="Clique para editar nome do projeto"
-			>
-				<p className="text-sm font-medium text-slate-600">Projeto:</p>
-				<p className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{projectName}</p>
-				{isViewMode && (
-					<p className="text-xs text-amber-600 mt-1">🔒 Modo Visualização</p>
-				)}
-			</button>
-		</div>
+				<button
+					onClick={() => setShowEditProjectName(true)}
+					className="px-4 py-2 bg-white/80 backdrop-blur-md rounded-lg shadow-lg border border-white/20 hover:bg-white/90 transition-all cursor-pointer group text-left"
+					title="Clique para editar nome do projeto"
+				>
+					<p className="text-sm font-medium text-slate-600">Projeto:</p>
+					<p className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{projectName}</p>
+					{isViewMode && (
+						<p className="text-xs text-amber-600 mt-1">🔒 Modo Visualização</p>
+					)}
+				</button>
+			</div>
 
-		{/* Header Flutuante (Fixed + z-index alto) */}
-		<ModeSelector
-			currentMode={analysisMode}
-			onModeChange={setAnalysisMode}
-		/>
+			{/* Header Flutuante (Fixed + z-index alto) */}
+			<ModeSelector
+				currentMode={analysisMode}
+				onModeChange={setAnalysisMode}
+			/>
 
-		{/* Botão de Ajuda - Top Right */}
-		<HelpButton onClick={() => setShowHelpModal(true)} />
+			{/* Botão de Ajuda - Top Right */}
+			<HelpButton onClick={() => setShowHelpModal(true)} />
 
-		{/* Navigation Controls (Zoom + Fit View) */}
-		<NavigationControls />
+			{/* Navigation Controls (Zoom + Fit View) */}
+			<NavigationControls />
 
 			{/* Action Dock Flutuante (Inferior) */}
 			<FloatingDock
@@ -693,39 +694,45 @@ function App() {
 			/>
 
 			{/* Modal de Edição */}
-			{editingId && (
-				<EditModal
-					phone={phones.find((p) => p.id === editingId)!}
-					onSave={handleSaveEdit}
-					onCancel={() => setEditingId(null)}
-				/>
-			)}
+			<AnimatePresence>
+				{editingId && (
+					<EditModal
+						phone={phones.find((p) => p.id === editingId)!}
+						onSave={handleSaveEdit}
+						onCancel={() => setEditingId(null)}
+					/>
+				)}
+			</AnimatePresence>
 
 			{/* Modal de Novo Projeto */}
-			{showNewProjectModal && (
-				<NewProjectModal
-					onConfirm={handleNewProject}
-					onCancel={() => setShowNewProjectModal(false)}
-				/>
-			)}
+			<AnimatePresence>
+				{showNewProjectModal && (
+					<NewProjectModal
+						onConfirm={handleNewProject}
+						onCancel={() => setShowNewProjectModal(false)}
+					/>
+				)}
+			</AnimatePresence>
 
 			{/* Modal de Editar Nome do Projeto */}
-			{showEditProjectName && (
-				<EditProjectNameModal
-					currentName={projectName}
-					onConfirm={(newName) => {
-						setProjectName(newName);
-						setShowEditProjectName(false);
-						setToastState({
-							show: true,
-							message: `✓ Projeto renomeado para "${newName}"`,
-							icon: <Activity size={20} />,
-						});
-						setTimeout(() => setToastState({ ...toastState, show: false }), 2000);
-					}}
-					onCancel={() => setShowEditProjectName(false)}
-				/>
-			)}
+			<AnimatePresence>
+				{showEditProjectName && (
+					<EditProjectNameModal
+						currentName={projectName}
+						onConfirm={(newName) => {
+							setProjectName(newName);
+							setShowEditProjectName(false);
+							setToastState({
+								show: true,
+								message: `✓ Projeto renomeado para "${newName}"`,
+								icon: <Activity size={20} />,
+							});
+							setTimeout(() => setToastState({ ...toastState, show: false }), 2000);
+						}}
+						onCancel={() => setShowEditProjectName(false)}
+					/>
+				)}
+			</AnimatePresence>
 
 			{/* Mensagem vazia (overlay) */}
 			{phones.length === 0 && (
@@ -787,7 +794,9 @@ function App() {
 			)}
 
 			{/* Modal de Ajuda */}
-			{showHelpModal && <HelpModal onClose={() => setShowHelpModal(false)} />}
+			<AnimatePresence>
+				{showHelpModal && <HelpModal onClose={() => setShowHelpModal(false)} />}
+			</AnimatePresence>
 
 			{/* Toast de Feedback */}
 			<Toast

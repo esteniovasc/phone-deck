@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface HelpModalProps {
 	onClose: () => void;
@@ -16,6 +18,16 @@ export function HelpModal({ onClose }: HelpModalProps) {
 		{ key: '-', description: 'Diminuir Zoom' },
 	];
 
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') {
+				onClose();
+			}
+		};
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [onClose]);
+
 	const tips = [
 		'Clique no título do projeto para editar seu nome',
 		'Arraste cards pelo canvas para reorganizar',
@@ -26,8 +38,19 @@ export function HelpModal({ onClose }: HelpModalProps) {
 	];
 
 	return (
-		<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-			<div className="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+		<motion.div
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			exit={{ opacity: 0 }}
+			className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+		>
+			<motion.div
+				initial={{ scale: 0.95, opacity: 0 }}
+				animate={{ scale: 1, opacity: 1 }}
+				exit={{ scale: 0.95, opacity: 0 }}
+				transition={{ duration: 0.2 }}
+				className="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+			>
 				{/* Header */}
 				<div className="flex items-center justify-between mb-6">
 					<h2 className="text-2xl font-bold text-slate-900">❓ Ajuda & Atalhos</h2>
@@ -83,7 +106,7 @@ export function HelpModal({ onClose }: HelpModalProps) {
 						Entendi!
 					</button>
 				</div>
-			</div>
-		</div>
+			</motion.div>
+		</motion.div>
 	);
 }

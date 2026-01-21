@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface EditProjectNameModalProps {
 	currentName: string;
@@ -35,8 +36,19 @@ export function EditProjectNameModal({ currentName, onConfirm, onCancel }: EditP
 	};
 
 	return (
-		<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-			<div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
+		<motion.div
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			exit={{ opacity: 0 }}
+			className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+		>
+			<motion.div
+				initial={{ scale: 0.95, opacity: 0 }}
+				animate={{ scale: 1, opacity: 1 }}
+				exit={{ scale: 0.95, opacity: 0 }}
+				transition={{ duration: 0.2 }}
+				className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full"
+			>
 				{/* Header com fechar */}
 				<div className="flex items-center justify-between mb-6">
 					<h2 className="text-2xl font-bold text-slate-900">Editar Nome do Projeto</h2>
@@ -79,7 +91,7 @@ export function EditProjectNameModal({ currentName, onConfirm, onCancel }: EditP
 						Salvar
 					</button>
 				</div>
-			</div>
-		</div>
+			</motion.div>
+		</motion.div>
 	);
 }
