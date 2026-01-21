@@ -28,7 +28,7 @@ import { HelpButton } from './components/ui/HelpButton';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useDecisionEngine } from './hooks/useDecisionEngine';
 import PhoneNode from './components/canvas/PhoneNode';
-import { Eye, EyeOff, Activity } from 'lucide-react';
+import { Eye, EyeOff, Activity, Lock, Unlock, Map, Maximize2, AlertCircle } from 'lucide-react';
 import { Toast } from './components/ui/Toast';
 import { useHotkeys } from './hooks/useHotkeys';
 import { CalibrationPanel, type InteractionSettings, DEFAULT_INTERACTION_SETTINGS } from './components/ui/CalibrationPanel';
@@ -598,28 +598,64 @@ function App() {
 		setToastState({
 			show: true,
 			message: newMode ? '🔒 Modo Visualização' : '✏️ Modo Edição',
-			icon: newMode ? <Eye size={20} /> : <EyeOff size={20} />,
+			icon: newMode ? <Lock size={20} /> : <Unlock size={20} />,
 		});
 		setTimeout(() => {
 			setToastState((prev) => ({ ...prev, show: false }));
 		}, 1500);
 	}, [isViewMode]);
 
-	const handleZoomIn = useCallback(() => {
+	const handleCycleMinimap = useCallback(() => {
+		const nextState = {
+			'auto': 'visible',
+			'visible': 'hidden',
+			'hidden': 'auto'
+		}[minimapBehavior] as MinimapBehavior;
+
+		setMinimapBehavior(nextState);
 		setToastState({
 			show: true,
-			message: '🔍 Zoom +',
-			icon: <Activity size={20} />,
+			message: `🗺️ Minimapa: ${nextState === 'auto' ? 'Automático' : nextState === 'visible' ? 'Visível' : 'Oculto'}`,
+			icon: <Map size={20} />,
 		});
-	}, []);
+		setTimeout(() => setToastState(prev => ({ ...prev, show: false })), 2000);
+	}, [minimapBehavior]);
+
+	const handleExternalFitView = useCallback(() => {
+		if (rfInstance) {
+			rfInstance.fitView({ duration: 800, padding: 0.2 });
+			setToastState({
+				show: true,
+				message: '🔍 Visualização Centralizada',
+				icon: <Maximize2 size={20} />,
+			});
+			setTimeout(() => setToastState(prev => ({ ...prev, show: false })), 2000);
+		}
+	}, [rfInstance]);
+
+	const handleZoomIn = useCallback(() => {
+		if (rfInstance) {
+			rfInstance.zoomIn({ duration: 500 });
+			setToastState({
+				show: true,
+				message: '🔍 Zoom +',
+				icon: <Activity size={20} />,
+			});
+			setTimeout(() => setToastState(prev => ({ ...prev, show: false })), 1000);
+		}
+	}, [rfInstance]);
 
 	const handleZoomOut = useCallback(() => {
-		setToastState({
-			show: true,
-			message: '🔍 Zoom -',
-			icon: <Activity size={20} />,
-		});
-	}, []);
+		if (rfInstance) {
+			rfInstance.zoomOut({ duration: 500 });
+			setToastState({
+				show: true,
+				message: '🔍 Zoom -',
+				icon: <Activity size={20} />,
+			});
+			setTimeout(() => setToastState(prev => ({ ...prev, show: false })), 1000);
+		}
+	}, [rfInstance]);
 
 	// Sincronizar refs dos handlers (sem dependências)
 	useEffect(() => {
@@ -846,7 +882,15 @@ function App() {
 			</div>
 
 			{/* Navigation Controls (Zoom + Fit View) */}
-			<NavigationControls />
+			<NavigationControls
+				onFitView={handleExternalFitView}
+				onToggleLock={handleToggleViewMode}
+				isLocked={isViewMode}
+				onToggleMinimap={handleCycleMinimap}
+				minimapState={minimapBehavior}
+				onZoomIn={handleZoomIn}
+				onZoomOut={handleZoomOut}
+			/>
 
 			{/* Action Dock Flutuante (Inferior - Apenas Novo) */}
 			<FloatingDock
