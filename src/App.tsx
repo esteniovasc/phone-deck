@@ -32,6 +32,7 @@ import { Eye, EyeOff, Activity } from 'lucide-react';
 import { Toast } from './components/ui/Toast';
 import { useHotkeys } from './hooks/useHotkeys';
 import { CalibrationPanel, type InteractionSettings, DEFAULT_INTERACTION_SETTINGS } from './components/ui/CalibrationPanel';
+import { TopToolbar } from './components/ui/TopToolbar';
 import { findSmartPosition } from './utils/positionFinder';
 import { importProject, exportProject } from './utils/projectManager';
 import type { Phone, AnalysisMode } from './types';
@@ -800,41 +801,53 @@ function App() {
 				/>
 			</ReactFlow>
 
-			{/* Título do Projeto - Top Left */}
-			<div className="fixed top-6 left-6 z-40">
+			{/* Top Left Area: Project Name + Toolbar */}
+			<div className="fixed top-6 left-6 z-40 flex items-center gap-4">
+				{/* Título do Projeto */}
 				<button
 					onClick={() => setShowEditProjectName(true)}
-					className="px-4 py-2 bg-white/80 backdrop-blur-md rounded-lg shadow-lg border border-white/20 hover:bg-white/90 transition-all cursor-pointer group text-left"
+					className="h-14 px-4 py-2 bg-white/80 backdrop-blur-md rounded-lg shadow-sm border border-slate-400 hover:bg-white/90 transition-all cursor-pointer group text-left flex items-center"
 					title="Clique para editar nome do projeto"
 				>
-					<p className="text-sm font-medium text-slate-600">Projeto:</p>
-					<p className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{projectName}</p>
-					{isViewMode && (
-						<p className="text-xs text-amber-600 mt-1">🔒 Modo Visualização</p>
-					)}
+					<div className="flex items-center gap-2">
+						<div>
+							<p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Nome do Projeto</p>
+							<p className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight">{projectName}</p>
+						</div>
+						{isViewMode && (
+							<span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">🔒 Leitura</span>
+						)}
+					</div>
 				</button>
+
+				{/* Toolbar Principal (Atalhos) */}
+				<TopToolbar
+					onNewProject={() => setShowNewProjectModal(true)}
+					onOpenProject={handleOpenProjectClick}
+					onReset={handleReset}
+					onBackup={handleBackupJSON}
+					onSettings={() => setShowSettingsModal(true)}
+				/>
 			</div>
 
-			{/* Header Flutuante (Fixed + z-index alto) */}
-			<ModeSelector
-				currentMode={analysisMode}
-				onModeChange={setAnalysisMode}
-			/>
+			{/* Top Right Area: Filtros + Ajuda (Flex Container para Push) */}
+			<div className="fixed top-6 right-6 z-40 flex items-center gap-3 pointer-events-none">
+				{/* Barra de Filtros (Empurrada pelo botão de ajuda) */}
+				<ModeSelector
+					currentMode={analysisMode}
+					onModeChange={setAnalysisMode}
+				/>
 
-			{/* Botão de Ajuda - Top Right */}
-			<HelpButton onClick={() => setShowHelpModal(true)} />
+				{/* Botão de Ajuda (Expande e empurra) */}
+				<HelpButton onClick={() => setShowHelpModal(true)} />
+			</div>
 
 			{/* Navigation Controls (Zoom + Fit View) */}
 			<NavigationControls />
 
-			{/* Action Dock Flutuante (Inferior) */}
+			{/* Action Dock Flutuante (Inferior - Apenas Novo) */}
 			<FloatingDock
 				onAddPhone={handleAddPhone}
-				onBackup={handleBackupJSON}
-				onReset={handleReset}
-				onOpenProject={handleOpenProjectClick}
-				onNewProject={() => setShowNewProjectModal(true)}
-				onSettings={() => setShowSettingsModal(true)}
 				isEmpty={phones.length === 0}
 			/>
 
