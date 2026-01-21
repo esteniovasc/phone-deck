@@ -9,6 +9,8 @@ import {
 	type OnNodesChange,
 	type OnEdgesChange,
 	useReactFlow,
+	Controls,
+	PanOnScrollMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { AnimatePresence } from 'framer-motion';
@@ -17,6 +19,7 @@ import { NewProjectModal } from './components/modals/NewProjectModal';
 import { EditProjectNameModal } from './components/modals/EditProjectNameModal';
 import { HelpModal } from './components/modals/HelpModal';
 import { ResetBoardModal } from './components/modals/ResetBoardModal';
+import { SettingsModal, type NavigationMode } from './components/modals/SettingsModal';
 import { FloatingDock } from './components/ui/FloatingDock';
 import { ModeSelector } from './components/ui/ModeSelector';
 import { NavigationControls } from './components/ui/NavigationControls';
@@ -134,6 +137,16 @@ function App() {
 	const miniMapTimeoutRef = useRef<number | null>(null);
 	const [triggerFitView, setTriggerFitView] = useState(false);
 	const [showResetModal, setShowResetModal] = useState(false);
+	const [showSettingsModal, setShowSettingsModal] = useState(false);
+	const [navigationMode, setNavigationMode] = useState<NavigationMode>(() => {
+		const saved = localStorage.getItem('phone-deck-nav-mode');
+		return (saved as NavigationMode) || 'default';
+	});
+
+	useEffect(() => {
+		localStorage.setItem('phone-deck-nav-mode', navigationMode);
+	}, [navigationMode]);
+
 	const fitViewRef = useRef<((options?: any) => void) | null>(null);
 
 	// Refs para handlers (para evitar problemas de dependência)
@@ -628,6 +641,11 @@ function App() {
 				onMoveStart={() => setShowMiniMap(true)}
 				fitView
 				minZoom={0.1} // Ajusta o zoom mínimo do canvas
+				panOnScroll={navigationMode === 'figma'}
+				zoomOnScroll={navigationMode === 'default'}
+				panOnScrollMode={PanOnScrollMode.Free}
+				selectionOnDrag={false}
+				panOnDrag={true} // Permite arrastar com botão esquerdo
 			>
 				<Background />
 				<AutoFitViewOnDraft phones={phones} />
@@ -695,6 +713,7 @@ function App() {
 				onReset={handleReset}
 				onOpenProject={handleOpenProjectClick}
 				onNewProject={() => setShowNewProjectModal(true)}
+				onSettings={() => setShowSettingsModal(true)}
 				isEmpty={phones.length === 0}
 			/>
 
@@ -725,6 +744,17 @@ function App() {
 					<ResetBoardModal
 						onConfirm={handleConfirmReset}
 						onCancel={() => setShowResetModal(false)}
+					/>
+				)}
+			</AnimatePresence>
+
+			{/* Modal de Configurações */}
+			<AnimatePresence>
+				{showSettingsModal && (
+					<SettingsModal
+						currentMode={navigationMode}
+						onModeChange={setNavigationMode}
+						onClose={() => setShowSettingsModal(false)}
 					/>
 				)}
 			</AnimatePresence>
